@@ -2,182 +2,26 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>随身私密小手机(记忆版)</title>
-    <style>
-        :root { --primary-color: #10b981; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* 顶部控制栏 */
-        .top-bar { display: flex; justify-content: space-between; background: #6b7280; padding: 5px 10px; }
-        .toggle-btn, .clear-btn { color: white; background: transparent; border: none; font-size: 12px; cursor: pointer; padding: 5px; }
-        .clear-btn { background: #ef4444; border-radius: 4px; padding: 2px 8px; }
-        
-        /* 设置面板 */
-        #settings-panel { background: white; padding: 15px; border-bottom: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 10; }
-        .input-group { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #4b5563; }
-        .input-group input, .input-group textarea { padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; font-size: 13px; }
-        
-        /* 聊天区域 */
-        #chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-all; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .user { background-color: var(--primary-color); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .ai { background-color: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 4px; }
-        
-        /* 输入栏 */
-        #input-area { display: flex; padding: 10px 15px; background: white; border-top: 1px solid #e5e7eb; align-items: center; gap: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-        #user-input { flex: 1; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 24px; background: #f9fafb; font-size: 15px; outline: none; }
-        #send-btn { background: var(--primary-color); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>小手机</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div id="app"></div>
 
-    <div class="top-bar">
-        <button class="toggle-btn" onclick="toggleSettings()">⚙️ 配置面板</button>
-        <button class="clear-btn" onclick="clearHistory()">🧹 清空聊天记录</button>
-    </div>
-
-    <div id="settings-panel">
-        <div class="input-group">
-            <label>API 转发链接 (URL)</label>
-            <input type="text" id="api-url" value="https://api.deepseek.com/v1/chat/completions" onchange="saveConfig()">
-        </div>
-        <div class="input-group">
-            <label>API Key</label>
-            <input type="password" id="api-key" placeholder="在此处粘贴你的密钥 (sk-...)" onchange="saveConfig()">
-        </div>
-        <div class="input-group">
-            <label>模型名称 (Model)</label>
-            <input type="text" id="api-model" value="deepseek-chat" onchange="saveConfig()">
-        </div>
-        <div class="input-group">
-            <label>角色卡设定 (System Prompt)</label>
-            <textarea id="system-prompt" rows="2" onchange="saveConfig()">你现在扮演xxx，人设是xxx。请保持人设与我聊天。</textarea>
-        </div>
-    </div>
-
-    <div id="chat-container"></div>
-
-    <div id="input-area">
-        <input type="text" id="user-input" placeholder="发消息...">
-        <button id="send-btn" onclick="sendMessage()">➔</button>
-    </div>
-
-    <script>
-        let chatHistory = [];
-
-        // 【核心功能 1】页面加载时，自动读取之前保存的配置和聊天记录
-        window.onload = function() {
-            // 恢复配置
-            if(localStorage.getItem('api-url')) document.getElementById('api-url').value = localStorage.getItem('api-url');
-            if(localStorage.getItem('api-key')) document.getElementById('api-key').value = localStorage.getItem('api-key');
-            if(localStorage.getItem('api-model')) document.getElementById('api-model').value = localStorage.getItem('api-model');
-            if(localStorage.getItem('system-prompt')) document.getElementById('system-prompt').value = localStorage.getItem('system-prompt');
-
-            // 恢复聊天记录
-            const localHistory = localStorage.getItem('chat-history');
-            if (localHistory) {
-                chatHistory = JSON.parse(localHistory);
-                chatHistory.forEach(msg => {
-                    appendBubble(msg.content, msg.role === 'user' ? 'user' : 'ai');
-                });
-            } else {
-                // 如果是第一次打开，显示默认开场白
-                appendBubble("哼，总算把你专属的聊天网页写好了。输入你的 API 设定，我们就可以随时随地聊天了！", 'ai');
-            }
-        };
-
-        // 【核心功能 2】保存配置到手机本地
-        function saveConfig() {
-            localStorage.setItem('api-url', document.getElementById('api-url').value.trim());
-            localStorage.setItem('api-key', document.getElementById('api-key').value.trim());
-            localStorage.setItem('api-model', document.getElementById('api-model').value.trim());
-            localStorage.setItem('system-prompt', document.getElementById('system-prompt').value.trim());
-        }
-
-        // 【核心功能 3】清空记录
-        function clearHistory() {
-            if(confirm("确定要清空所有的聊天记录吗？")) {
-                localStorage.removeItem('chat-history');
-                chatHistory = [];
-                document.getElementById('chat-container').innerHTML = '';
-                appendBubble("记录已清空。我们重新开始吧！", 'ai');
-            }
-        }
-
-        function toggleSettings() {
-            const panel = document.getElementById('settings-panel');
-            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        async function sendMessage() {
-            const inputEl = document.getElementById('user-input');
-            const text = inputEl.value.trim();
-            if (!text) return;
-
-            const apiUrl = document.getElementById('api-url').value.trim();
-            const apiKey = document.getElementById('api-key').value.trim();
-            const modelName = document.getElementById('api-model').value.trim();
-            const systemPrompt = document.getElementById('system-prompt').value.trim();
-
-            if (!apiKey) {
-                alert("请先填写你的 API Key 才能聊天哦！");
-                return;
-            }
-
-            appendBubble(text, 'user');
-            inputEl.value = '';
-
-            // 存入记忆并同步到本地存储
-            chatHistory.push({ role: "user", content: text });
-            localStorage.setItem('chat-history', JSON.stringify(chatHistory));
-
-            const messages = [
-                { role: "system", content: systemPrompt },
-                ...chatHistory
-            ];
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: modelName,
-                        messages: messages,
-                        temperature: 0.7
-                    })
-                });
-
-                const data = await response.json();
-                const aiReply = data.choices[0].message.content;
-
-                appendBubble(aiReply, 'ai');
-                
-                // 存入 AI 的回复并同步到本地存储
-                chatHistory.push({ role: "assistant", content: aiReply });
-                
-                // 限制记忆长度防止发给 AI 的数据量过大导致变慢或卡死（可根据需要调整）
-                if (chatHistory.length > 40) chatHistory.shift(); 
-                
-                localStorage.setItem('chat-history', JSON.stringify(chatHistory));
-
-            } catch (error) {
-                console.error(error);
-                appendBubble("（连接失败，请检查你的 API 链接、Key 是否正确，或者网络是否通畅）", 'ai');
-            }
-        }
-
-        function appendBubble(text, sender) {
-            const container = document.getElementById('chat-container');
-            const bubble = document.createElement('div');
-            bubble.className = `msg-bubble ${sender}`;
-            bubble.innerText = text;
-            container.appendChild(bubble);
-            container.scrollTop = container.scrollHeight;
-        }
-    </script>
+    <!-- 按依赖顺序加载 -->
+    <script src="js/storage.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/homescreen.js"></script>
+    <script src="js/wechat.js"></script>
+    <script src="js/contacts.js"></script>
+    <script src="js/moments.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

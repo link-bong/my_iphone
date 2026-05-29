@@ -1,0 +1,786 @@
+/**
+ * style.css — 小手机 全局样式
+ * iPhone 视觉风格 + WeChat 配色
+ * 约 600 行
+ */
+
+/* ==================== CSS 变量 ==================== */
+:root {
+  /* WeChat 配色 */
+  --wechat-green: #07C160;
+  --wechat-dark-green: #06AD56;
+  --bubble-sent: #95EC69;
+  --bubble-received: #FFFFFF;
+
+  /* iOS 系统色 */
+  --ios-bg: #F2F2F7;
+  --ios-card-bg: #FFFFFF;
+  --ios-separator: #E5E5EA;
+  --ios-text-primary: #000000;
+  --ios-text-secondary: #8E8E93;
+  --ios-tab-bar-bg: #F7F7F7;
+  --ios-nav-bar-bg: #EDEDED;
+  --ios-red: #FF3B30;
+
+  /* 安全区域 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==================== 基础重置 ==================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+/* ==================== 应用容器 ==================== */
+#app {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 桌面端：手机框效果 */
+@media (min-width: 431px) {
+  body {
+    background: #1C1C1E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #app {
+    width: 430px;
+    max-width: 430px;
+    height: 932px;
+    max-height: 100vh;
+    border-radius: 40px;
+    box-shadow:
+      0 0 0 3px #333,
+      0 0 0 6px #1a1a1a,
+      0 20px 60px rgba(0,0,0,0.5);
+  }
+}
+
+/* ==================== 屏幕容器 ==================== */
+.screen {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 页面过渡动画 */
+.screen-enter {
+  transform: translateX(100%);
+}
+.screen-enter.screen-active {
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+.screen-exit {
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+.screen-exit.screen-active {
+  transform: translateX(-30%);
+}
+.screen-back {
+  transform: translateX(-30%);
+}
+.screen-back.screen-active {
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+.screen-exit-right {
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
+}
+.screen-exit-right.screen-active {
+  transform: translateX(100%);
+}
+
+/* ==================== 状态栏 ==================== */
+.status-bar {
+  height: 44px;
+  padding: 14px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  color: white;
+}
+
+.status-left, .status-right {
+  min-width: 60px;
+}
+
+.status-right {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* ==================== 导航栏 ==================== */
+.nav-bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ios-nav-bar-bg);
+  border-bottom: 0.5px solid var(--ios-separator);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ios-text-primary);
+}
+
+.nav-back-btn {
+  position: absolute;
+  left: 12px;
+  color: var(--ios-text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 12px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.nav-back-btn:active {
+  opacity: 0.6;
+}
+
+.nav-right-btn {
+  position: absolute;
+  right: 12px;
+  color: var(--ios-text-primary);
+  font-size: 20px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 8px 12px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.nav-right-btn:active {
+  opacity: 0.6;
+}
+
+/* ==================== Tab 栏 ==================== */
+.tab-bar {
+  height: calc(49px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: flex;
+  background: var(--ios-tab-bar-bg);
+  border-top: 0.5px solid var(--ios-separator);
+  flex-shrink: 0;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--ios-text-secondary);
+  gap: 3px;
+  cursor: pointer;
+  min-height: 49px;
+}
+.tab-item.active {
+  color: var(--wechat-green);
+}
+.tab-item:active {
+  opacity: 0.6;
+}
+
+.tab-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 10px;
+}
+
+/* ==================== 主屏幕 ==================== */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px 12px;
+  padding: 30px 18px;
+}
+
+.app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.app-icon:active {
+  transform: scale(0.85);
+  transition: transform 0.15s;
+}
+
+.app-icon-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.app-icon-label {
+  font-size: 11px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  white-space: nowrap;
+}
+
+/* Dock */
+.dock {
+  position: absolute;
+  bottom: 16px;
+  left: 12px;
+  right: 12px;
+  height: 78px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 6px;
+}
+
+/* ==================== 聊天列表 ==================== */
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  cursor: pointer;
+  gap: 12px;
+  position: relative;
+}
+.chat-item:active {
+  background: #E6E6E6;
+}
+
+.chat-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.chat-item-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ios-text-primary);
+}
+
+.chat-item-time {
+  font-size: 12px;
+  color: var(--ios-text-secondary);
+  flex-shrink: 0;
+}
+
+.chat-item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-item-lastmsg {
+  font-size: 14px;
+  color: var(--ios-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.unread-badge {
+  background: #FF3B30;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+/* 分割线 */
+.divider {
+  position: absolute;
+  bottom: 0;
+  left: 68px;
+  right: 0;
+  height: 0.5px;
+  background: var(--ios-separator);
+}
+
+/* ==================== 头像 ==================== */
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: #E8E8ED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  font-size: 22px;
+}
+.avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  font-size: 36px;
+}
+
+/* ==================== 聊天详情 ==================== */
+.msg-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #EDEDED;
+  -webkit-overflow-scrolling: touch;
+}
+
+.msg-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  font-size: 16px;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  position: relative;
+}
+
+.msg-sent {
+  background: #95EC69;
+  color: #000;
+  align-self: flex-end;
+  border-radius: 16px 16px 4px 16px;
+}
+
+.msg-received {
+  background: #FFFFFF;
+  color: #1f2937;
+  align-self: flex-start;
+  border-radius: 16px 16px 16px 4px;
+}
+
+.msg-error {
+  background: #FFF3CD;
+  color: #856404;
+  align-self: center;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  max-width: 85%;
+}
+
+/* 打字动画 */
+.msg-typing {
+  padding: 14px 18px;
+  border-radius: 16px 16px 16px 4px;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dots span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  animation: typing-dot 1.4s infinite both;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-dot {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* 输入栏 */
+.input-bar {
+  display: flex;
+  padding: 8px 12px;
+  padding-bottom: calc(8px + var(--safe-bottom));
+  background: #F7F7F7;
+  border-top: 0.5px solid var(--ios-separator);
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #E5E5EA;
+  border-radius: 20px;
+  background: white;
+  font-size: 15px;
+  outline: none;
+}
+.chat-input:focus {
+  border-color: var(--wechat-green);
+}
+
+.chat-send-btn {
+  background: var(--wechat-green);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-height: 40px;
+}
+.chat-send-btn:active {
+  background: var(--wechat-dark-green);
+}
+.chat-send-btn:disabled {
+  background: #B0B0B0;
+  color: #E0E0E0;
+  cursor: not-allowed;
+}
+
+/* ==================== 通讯录 ==================== */
+.contact-section-header {
+  background: #F2F2F7;
+  padding: 4px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ios-text-secondary);
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: white;
+  cursor: pointer;
+  gap: 12px;
+}
+.contact-row:active {
+  background: #E6E6E6;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-name {
+  font-size: 16px;
+  color: var(--ios-text-primary);
+}
+
+/* ==================== 菜单行 ==================== */
+.menu-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: white;
+  cursor: pointer;
+  position: relative;
+}
+.menu-row:active {
+  background: #E6E6E6;
+}
+
+.menu-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-row-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+}
+
+.menu-row-label {
+  font-size: 16px;
+  color: var(--ios-text-primary);
+}
+
+.menu-row-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu-row-sublabel {
+  font-size: 14px;
+  color: var(--ios-text-secondary);
+}
+
+.menu-row-arrow {
+  font-size: 20px;
+  color: #C7C7CC;
+  font-weight: 300;
+}
+
+/* ==================== 个人资料页 ==================== */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px;
+  background: white;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ios-text-primary);
+}
+
+.profile-wechat-id,
+.profile-region {
+  font-size: 13px;
+  color: var(--ios-text-secondary);
+}
+
+/* ==================== 朋友圈 ==================== */
+.moments-cover {
+  /* 内联设置 */
+}
+
+.moments-post {
+  padding: 14px 16px;
+  background: white;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.post-author-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #576B95;
+}
+
+.post-text {
+  font-size: 15px;
+  color: var(--ios-text-primary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* 朋友圈图片网格 */
+.post-images {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.post-images.grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.post-images.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.post-images.single {
+  grid-template-columns: 1fr;
+  max-width: 200px;
+}
+
+.post-img-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #E8E8ED;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  overflow: hidden;
+}
+
+.post-timestamp {
+  font-size: 12px;
+  color: var(--ios-text-secondary);
+  margin-bottom: 6px;
+}
+
+/* 点赞和评论 */
+.post-interactions {
+  background: #F7F7F7;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.likes-bar {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #576B95;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+.likes-bar:last-child {
+  border-bottom: none;
+}
+
+.comments-bar {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.comment-line {
+  padding: 3px 0;
+  color: var(--ios-text-primary);
+}
+
+.comment-name {
+  color: #576B95;
+  font-weight: 500;
+}
+
+/* ==================== 设置页 ==================== */
+.setting-group {
+  margin-bottom: 12px;
+}
+
+.setting-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ios-text-secondary);
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+
+.setting-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+  font-family: inherit;
+  -webkit-appearance: none;
+}
+
+.setting-input:focus {
+  border-color: var(--wechat-green);
+  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+}
+
+textarea.setting-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* ==================== 滚动容器 ==================== */
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==================== 通用组件 ==================== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ios-text-secondary);
+  font-size: 15px;
+  white-space: pre-line;
+}
+
+/* ==================== Toast ==================== */
+.toast {
+  animation: toastIn 0.3s ease-out;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
