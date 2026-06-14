@@ -10,7 +10,7 @@ MI.Worldview = {
     var navBar = MI.Components.createNavBar('世界观设定', {
       showBack: true,
       onBack: function () { MI.Router.goBack(); },
-      rightText: '＋',
+      rightIcon: 'plus',
       onRight: function () {
         MI.Router.navigateTo('worldview-edit', { worldviewId: null });
       }
@@ -25,7 +25,7 @@ MI.Worldview = {
     } else {
       for (var i = 0; i < worldviews.length; i++) {
         (function (wv) {
-          var row = MI.Components.createMenuRow('🌍', wv.name, '', true, function () {
+          var row = MI.Components.createMenuRow('earth-americas', wv.name, '', true, function () {
             MI.Router.navigateTo('worldview-edit', { worldviewId: wv.id });
           });
           scroll.appendChild(row);
@@ -58,7 +58,7 @@ MI.Worldview = {
 
     var saveBtn = document.createElement('button');
     saveBtn.className = 'btn-glass btn-glass-primary';
-    saveBtn.textContent = '💾 保存';
+    saveBtn.appendChild(MI.Components.buttonContent('floppy-disk', '保存'));
     saveBtn.addEventListener('click', function () {
       MI.Worldview._save(worldviewId);
     });
@@ -67,11 +67,11 @@ MI.Worldview = {
     if (!isNew) {
       var delBtn = document.createElement('button');
       delBtn.className = 'btn-glass btn-glass-danger';
-      delBtn.textContent = '🗑️ 删除世界观';
+      delBtn.appendChild(MI.Components.buttonContent('trash', '删除世界观'));
       delBtn.addEventListener('click', function () {
-        if (confirm('删除后，绑定此世界观的角色和朋友圈将失去关联。确定删除？')) {
+        MI.Components.showConfirmDialog('删除世界观', '删除后，绑定此世界观的角色和朋友圈将失去关联。确定删除？', function () {
           MI.Worldview._delete(worldviewId);
-        }
+        }, null, { danger: true, confirmText: '删除' });
       });
       scroll.appendChild(delBtn);
     }
@@ -83,7 +83,7 @@ MI.Worldview = {
     var name = document.getElementById('wv-name').value.trim();
     var description = document.getElementById('wv-desc').value.trim();
     if (!name) {
-      alert('请填写世界观名称');
+      MI.Components.showToast('请填写世界观名称');
       return;
     }
 

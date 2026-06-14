@@ -91,6 +91,16 @@ function boot() {
 
   // 2. schema v2 迁移
   MI.Data.migrateToV2();
+  MI.Data.migrateToV3();
+  MI.Data.migrateToV4();
+  MI.Data.migrateToV5();
+  MI.Data.migrateToV6();
+  MI.Data.migrateToV7();
+  MI.Data.migrateToV8();
+  MI.Data.migrateToV9();
+  MI.Data.migrateToV10();
+  MI.Data.migrateToV11();
+  MI.Data.migrateToV12();
 
   // 3. 初始化数据（仅确保 AI 助手）
   MI.Data.initSeedData();

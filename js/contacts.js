@@ -1,5 +1,5 @@
 /**
- * contacts.js — 通讯录（按分类分组）
+ * contacts.js — 通讯录（服务号 + 角色分类）
  */
 window.MI = window.MI || {};
 
@@ -8,18 +8,60 @@ MI.Contacts = {
     container.innerHTML = '';
 
     var contacts = MI.Storage.getContacts();
+    var tools = [];
+    var characters = [];
 
-    if (!contacts || contacts.length === 0) {
-      var empty = MI.Components.createEmptyState('暂无角色\n点击微信右上角 ＋ 创建角色');
-      container.appendChild(empty);
+    for (var i = 0; i < contacts.length; i++) {
+      if (MI.Data.isTool(contacts[i])) {
+        tools.push(contacts[i]);
+      } else {
+        characters.push(contacts[i]);
+      }
+    }
+
+    if (tools.length === 0 && characters.length === 0) {
+      container.appendChild(MI.Components.createEmptyState('暂无联系人\n点击右上角 ＋ 创建角色或服务号'));
       return;
     }
 
+    var toolHeaderRow = document.createElement('div');
+    toolHeaderRow.className = 'contact-section-header-row';
+
+    var toolHeader = document.createElement('div');
+    toolHeader.className = 'contact-section-header contact-section-header-tool';
+    toolHeader.textContent = '服务号 (' + tools.length + ')';
+
+    var addToolBtn = document.createElement('button');
+    addToolBtn.type = 'button';
+    addToolBtn.className = 'contact-section-add-btn';
+    addToolBtn.appendChild(MI.Components.buttonContent('plus', '新建'));
+    addToolBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      MI.Router.navigateTo('tool-create');
+    });
+
+    toolHeaderRow.appendChild(toolHeader);
+    toolHeaderRow.appendChild(addToolBtn);
+    container.appendChild(toolHeaderRow);
+
+    if (tools.length === 0) {
+      container.appendChild(MI.Components.createEmptyState('暂无服务号\n点击「新建」添加工具'));
+    } else {
+      tools.sort(function (a, b) {
+        return (a.pinyin || a.name).localeCompare(b.pinyin || b.name, 'zh');
+      });
+      for (var t = 0; t < tools.length; t++) {
+        container.appendChild(this._createToolRow(tools[t]));
+      }
+    }
+
+    if (characters.length === 0) return;
+
     var groups = {};
-    for (var i = 0; i < contacts.length; i++) {
-      var cat = contacts[i].category || '未分类';
+    for (var j = 0; j < characters.length; j++) {
+      var cat = characters[j].category || '未分类';
       if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(contacts[i]);
+      groups[cat].push(characters[j]);
     }
 
     var catKeys = Object.keys(groups).sort();
@@ -37,19 +79,70 @@ MI.Contacts = {
       header.textContent = category + ' (' + group.length + ')';
       container.appendChild(header);
 
-      for (var j = 0; j < group.length; j++) {
-        var contact = group[j];
-        var row = this._createContactRow(contact);
-        container.appendChild(row);
+      for (var k = 0; k < group.length; k++) {
+        container.appendChild(this._createCharacterRow(group[k]));
       }
     }
   },
 
-  _createContactRow: function (contact) {
+  _createToolRow: function (contact) {
+    var row = document.createElement('div');
+    row.className = 'contact-row contact-row-tool';
+
+    var avatar = MI.Components.createAvatar(contact.avatar, 'normal', contact);
+
+    var info = document.createElement('div');
+    info.className = 'contact-info';
+
+    var name = document.createElement('div');
+    name.className = 'contact-name';
+    name.textContent = contact.name;
+
+    var sub = document.createElement('div');
+    sub.className = 'contact-sub contact-sub-tool';
+    if (MI.Data.isBuiltinTool(contact.id)) {
+      sub.textContent = '内置工具';
+    } else if (contact.apiProfileId) {
+      var ap = MI.Storage.getApiProfileById(contact.apiProfileId);
+      var modelLabel = contact.apiModel || (ap && ap.enabledModels && ap.enabledModels[0]) || '';
+      sub.textContent = ap ? (ap.name + (modelLabel ? ' · ' + modelLabel : '')) : '自定义工具';
+    } else {
+      sub.textContent = '自定义 · 默认 API';
+    }
+
+    info.appendChild(name);
+    info.appendChild(sub);
+
+    var actions = document.createElement('div');
+    actions.className = 'contact-row-actions';
+
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'contact-action-btn';
+    editBtn.appendChild(MI.Components.buttonContent('pen', '编辑'));
+    editBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      MI.Router.navigateTo('tool-edit', { contactId: contact.id });
+    });
+    actions.appendChild(editBtn);
+
+    row.appendChild(avatar);
+    row.appendChild(info);
+    row.appendChild(actions);
+
+    row.addEventListener('click', function (e) {
+      e.preventDefault();
+      MI.Contacts.openChat(contact);
+    });
+
+    return row;
+  },
+
+  _createCharacterRow: function (contact) {
     var row = document.createElement('div');
     row.className = 'contact-row';
 
-    var avatar = MI.Components.createAvatar(contact.avatar, 'normal');
+    var avatar = MI.Components.createAvatar(contact.avatar, 'normal', contact);
 
     var info = document.createElement('div');
     info.className = 'contact-info';
@@ -69,14 +162,25 @@ MI.Contacts = {
     var actions = document.createElement('div');
     actions.className = 'contact-row-actions';
 
+    var profileBtn = document.createElement('button');
+    profileBtn.type = 'button';
+    profileBtn.className = 'contact-action-btn';
+    profileBtn.appendChild(MI.Components.buttonContent('id-card', '资料'));
+    profileBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      MI.Router.navigateTo('character-profile', { contactId: contact.id });
+    });
+
     var editBtn = document.createElement('button');
+    editBtn.type = 'button';
     editBtn.className = 'contact-action-btn';
-    editBtn.textContent = '编辑';
+    editBtn.appendChild(MI.Components.buttonContent('pen', '编辑'));
     editBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       MI.Router.navigateTo('character-edit', { contactId: contact.id });
     });
 
+    actions.appendChild(profileBtn);
     actions.appendChild(editBtn);
 
     row.appendChild(avatar);

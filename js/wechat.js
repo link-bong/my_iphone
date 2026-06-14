@@ -10,9 +10,9 @@ MI.WeChat = {
     var navBar = MI.Components.createNavBar('微信', {
       showHome: true,
       onHome: function () { MI.Router.goHome(); },
-      rightText: '＋',
+      rightIcon: 'plus',
       onRight: function () {
-        MI.Router.navigateTo('character-create');
+        MI.WeChat.showCreateMenu();
       }
     });
     container.appendChild(navBar);
@@ -26,10 +26,17 @@ MI.WeChat = {
 
     container.appendChild(tabContent);
 
+    var momentUnread = MI.MomentNotifications ? MI.MomentNotifications.getUnreadCount() : 0;
     var tabBar = MI.Components.createTabBar(tab, function (tabId) {
       MI.Router.switchWechatTab(tabId);
-    });
+    }, { discover: momentUnread > 0 });
     container.appendChild(tabBar);
+  },
+
+  refreshIfVisible: function () {
+    if (MI.Router.currentPage() === 'wechat') {
+      MI.Router.render();
+    }
   },
 
   _renderTabContent: function (container, tabId) {
@@ -79,10 +86,15 @@ MI.WeChat = {
   },
 
   renderChatDetail: function (container) {
-    var params = MI.Router.currentParams;
-    var chatId = params ? params.chatId : null;
+    var params = MI.Router.getChatDetailParams();
+    var chatId = MI.Router.resolveChatId(params);
     if (!chatId) {
-      MI.Router.goBack();
+      container.classList.add('app-screen');
+      container.appendChild(MI.Components.createNavBar('聊天', {
+        showBack: true,
+        onBack: function () { MI.Router.goBack(); }
+      }));
+      container.appendChild(MI.Components.createEmptyState('会话不存在或已失效'));
       return;
     }
 
@@ -95,22 +107,41 @@ MI.WeChat = {
       }
     }
     if (!chat) {
-      MI.Router.goBack();
+      container.classList.add('app-screen');
+      container.appendChild(MI.Components.createNavBar('聊天', {
+        showBack: true,
+        onBack: function () { MI.Router.goBack(); }
+      }));
+      container.appendChild(MI.Components.createEmptyState('会话不存在或已失效'));
       return;
     }
 
     var contact = MI.Data.getContactForChat(chat);
     var character = chat.contactId ? MI.Data.getContactById(chat.contactId) : null;
+    var isTool = character && MI.Data.isTool(character);
+    var isEditableCharacter = character && MI.Data.isCharacter(character);
 
     container.classList.add('app-screen');
+    if (isTool) container.classList.add('chat-tool-session');
 
     var self = this;
     var navBar = MI.Components.createNavBar(contact.name, {
       showBack: true,
       onBack: function () { MI.Router.goBack(); },
-      rightText: character ? '⋯' : null,
-      onRight: character ? function () {
-        MI.Router.navigateTo('character-edit', { contactId: character.id });
+      titleClickable: isEditableCharacter,
+      onTitleClick: isEditableCharacter ? function () {
+        MI.Router.navigateTo('character-profile', {
+          contactId: character.id,
+          chatId: chat.id
+        });
+      } : null,
+      rightIcon: (isEditableCharacter || isTool) ? 'ellipsis' : null,
+      onRight: (isEditableCharacter || isTool) ? function () {
+        if (isTool) {
+          MI.Router.navigateTo('tool-edit', { contactId: character.id, chatId: chat.id });
+        } else {
+          MI.Router.navigateTo('character-edit', { contactId: character.id, chatId: chat.id });
+        }
       } : null
     });
     container.appendChild(navBar);
@@ -120,7 +151,28 @@ MI.WeChat = {
     msgList.id = 'chat-msg-list';
     container.appendChild(msgList);
 
-    this._renderMessages(msgList, chat.messages);
+    var chatSettings = isEditableCharacter
+      ? MI.ChatEngine.getChatSettings(character)
+      : { chatEffect: 'paragraph' };
+
+    var renderOptions = {
+      chatEffect: chatSettings.chatEffect,
+      allowActions: isEditableCharacter,
+      contact: character,
+      onMessageAction: null
+    };
+
+    var handleMessageAction = function (partInfo) {
+      self._showMessagePartActionSheet(chat, partInfo, msgList, renderOptions);
+    };
+    renderOptions.onMessageAction = handleMessageAction;
+
+    for (var mi = 0; mi < chat.messages.length; mi++) {
+      MI.ChatEngine.normalizeMessage(chat.messages[mi], chatSettings.chatEffect);
+    }
+    self._saveChat(chat);
+
+    this._renderMessages(msgList, chat.messages, renderOptions);
 
     setTimeout(function () {
       msgList.scrollTop = msgList.scrollHeight;
@@ -137,107 +189,339 @@ MI.WeChat = {
     input.id = 'chat-text-input';
 
     var sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
     sendBtn.className = 'chat-send-btn';
-    sendBtn.textContent = '发送';
+    sendBtn.appendChild(MI.Components.buttonContent('paper-plane', '发送'));
     sendBtn.id = 'chat-send-btn';
 
     inputBar.appendChild(input);
     inputBar.appendChild(sendBtn);
     container.appendChild(inputBar);
 
-    this._bindChatEvents(chat, character);
+    this._bindChatEvents(chat, character, input, sendBtn, msgList, renderOptions);
   },
 
-  _renderMessages: function (container, messages) {
+  _renderMessages: function (container, messages, options) {
+    options = options || {};
     container.innerHTML = '';
+    var chatEffect = options.chatEffect || 'sentence';
+
     for (var i = 0; i < messages.length; i++) {
-      var msg = messages[i];
-      var sender = msg.role === 'user' ? 'user' : 'assistant';
-      var bubble = MI.Components.createMessageBubble(msg.content, sender);
-      container.appendChild(bubble);
+      var msg = MI.ChatEngine.normalizeMessage(messages[i], chatEffect);
+      var parts = MI.ChatEngine.getMessageParts(msg, chatEffect);
+      var group = MI.Components.createMessageGroup(msg, parts, {
+        onPartAction: options.allowActions ? options.onMessageAction : null
+      });
+      container.appendChild(group);
+
+      if (msg.linkedMomentId && MI.Moments) {
+        var linked = MI.Moments.getById(msg.linkedMomentId);
+        if (linked) {
+          var charName = options.contact ? options.contact.name : '';
+          container.appendChild(MI.Components.createMomentLinkBubble(linked, charName));
+        }
+      }
     }
   },
 
-  _bindChatEvents: function (chat, character) {
-    var input = document.getElementById('chat-text-input');
-    var sendBtn = document.getElementById('chat-send-btn');
-    var msgList = document.getElementById('chat-msg-list');
+  _showMessagePartActionSheet: function (chat, partInfo, msgList, renderOptions) {
     var self = this;
+    var msg = partInfo.msg;
+    var partIndex = partInfo.partIndex;
+    var partText = partInfo.text;
+    var roleLabel = msg.role === 'user' ? '你的消息' : '角色消息';
+    var parts = MI.ChatEngine.getMessageParts(msg, renderOptions.chatEffect);
+    var isSinglePart = parts.length <= 1;
+
+    MI.Components.showActionSheet(isSinglePart ? roleLabel : roleLabel + '（第 ' + (partIndex + 1) + ' 句）', [
+      {
+        icon: 'pen',
+        label: isSinglePart ? '编辑' : '编辑此句',
+        onClick: function () {
+          MI.Components.showPromptDialog(
+            isSinglePart ? '编辑消息' : '编辑此句',
+            partText,
+            function (newContent) {
+              var text = String(newContent || '').trim();
+              if (isSinglePart) {
+                for (var i = 0; i < chat.messages.length; i++) {
+                  if (chat.messages[i].id === msg.id) {
+                    chat.messages[i].content = text;
+                    chat.messages[i].parts = [text];
+                    break;
+                  }
+                }
+              } else {
+                MI.ChatEngine.editMessagePart(chat.messages, msg.id, partIndex, text);
+              }
+              self._refreshChatMeta(chat);
+              self._saveChat(chat);
+              self._renderMessages(msgList, chat.messages, renderOptions);
+              msgList.scrollTop = msgList.scrollHeight;
+            },
+            null,
+            {
+              validate: function (val) {
+                if (!String(val || '').trim()) return '内容不能为空';
+                return '';
+              }
+            }
+          );
+        }
+      },
+      {
+        icon: 'trash',
+        label: isSinglePart ? '删除' : '删除此句',
+        danger: true,
+        onClick: function () {
+          var confirmMsg = isSinglePart
+            ? '确定删除这条消息？后续对话将不再包含此内容。'
+            : '确定删除这一句？其他分句会保留，AI 记忆也会同步更新。';
+
+          MI.Components.showConfirmDialog(
+            isSinglePart ? '删除消息' : '删除此句',
+            confirmMsg,
+            function () {
+              if (isSinglePart) {
+                var filtered = [];
+                for (var j = 0; j < chat.messages.length; j++) {
+                  if (chat.messages[j].id !== msg.id) filtered.push(chat.messages[j]);
+                }
+                chat.messages = filtered;
+              } else {
+                MI.ChatEngine.deleteMessagePart(chat.messages, msg.id, partIndex);
+              }
+
+              self._refreshChatMeta(chat);
+              self._saveChat(chat);
+              self._renderMessages(msgList, chat.messages, renderOptions);
+              msgList.scrollTop = msgList.scrollHeight;
+            },
+            null,
+            { danger: true, confirmText: '删除' }
+          );
+        }
+      }
+    ]);
+  },
+
+  _refreshChatMeta: function (chat) {
+    if (!chat.messages || chat.messages.length === 0) {
+      chat.lastMessage = '';
+      chat.lastMessageTime = Date.now();
+      return;
+    }
+    var last = chat.messages[chat.messages.length - 1];
+    chat.lastMessage = last.content;
+    chat.lastMessageTime = last.timestamp || Date.now();
+  },
+
+  _bindChatEvents: function (chat, character, input, sendBtn, msgList, renderOptions) {
+    var self = this;
+    renderOptions = renderOptions || { chatEffect: 'sentence', allowActions: false };
 
     if (!input || !sendBtn || !msgList) return;
 
-    var apiConfig = character
-      ? MI.ChatEngine.getApiConfigForContact(character)
-      : MI.ChatEngine.getApiConfigForAi();
+    var getApiConfig = function () {
+      if (character && character.id) {
+        var fresh = MI.Data.getContactById(character.id);
+        if (fresh) return MI.ChatEngine.getApiConfigForContact(fresh);
+      }
+      return MI.ChatEngine.getApiConfigForAi();
+    };
+
+    var getChatSettings = function () {
+      if (character && character.id) {
+        var freshChar = MI.Data.getContactById(character.id);
+        if (freshChar) return MI.ChatEngine.getChatSettings(freshChar);
+      }
+      return { chatEffect: 'paragraph', chatMode: 'real', language: 'zh' };
+    };
+
+    var resetSendUi = function () {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '';
+      sendBtn.appendChild(MI.Components.buttonContent('paper-plane', '发送'));
+      input.disabled = false;
+      input.focus();
+    };
 
     var doSend = function () {
       var text = input.value.trim();
       if (!text || sendBtn.disabled) return;
 
+      var apiConfig = getApiConfig();
       if (!apiConfig || !apiConfig.apiKey) {
-        alert(character
-          ? '请先在角色编辑页填写该角色的 API Key'
-          : '请先在「我 → AI 助手设置」中填写 API Key');
+        var isToolChat = character && MI.Data.isTool(character);
+        var isCharChat = character && MI.Data.isCharacter(character);
+        if (isCharChat) {
+          MI.Components.showToast('请先在角色编辑页选择 API 配置，并在「我 → API 配置」中填写 Key', 3500);
+        } else if (isToolChat) {
+          MI.Components.showToast('请先在「我 → API 配置」中添加并填写 API Key，或在服务号编辑页选择配置', 3500);
+        } else {
+          MI.Components.showToast('请先在「我 → API 配置」中添加 API，并在 AI 助手设置中选择', 3500);
+        }
+        return;
+      }
+      if (!apiConfig.apiModel) {
+        MI.Components.showToast('请先选择或填写模型名称');
         return;
       }
 
       input.value = '';
 
-      var userBubble = MI.Components.createMessageBubble(text, 'user');
-      msgList.appendChild(userBubble);
+      var userMsg = {
+        id: MI.Data.genId('msg'),
+        role: 'user',
+        content: text,
+        parts: [text],
+        timestamp: Date.now()
+      };
+      var userGroup = MI.Components.createMessageGroup(userMsg, [text], {
+        onPartAction: renderOptions.allowActions ? renderOptions.onMessageAction : null
+      });
+      msgList.appendChild(userGroup);
       msgList.scrollTop = msgList.scrollHeight;
 
-      var userMsg = { role: 'user', content: text, timestamp: Date.now() };
       chat.messages.push(userMsg);
       chat.lastMessage = text;
       chat.lastMessageTime = Date.now();
       self._saveChat(chat);
 
       sendBtn.disabled = true;
-      sendBtn.textContent = '...';
+      sendBtn.innerHTML = '';
+      sendBtn.appendChild(MI.Components.icon('ellipsis', 'btn-icon'));
       input.disabled = true;
 
+      var chatSettings = getChatSettings();
       var chatMessages = chat.messages.slice();
       if (chatMessages.length > 40) {
         chatMessages.splice(0, chatMessages.length - 40);
       }
+      for (var cm = 0; cm < chatMessages.length; cm++) {
+        MI.ChatEngine.syncMessageContent(chatMessages[cm], chatSettings.chatEffect);
+      }
 
-      MI.API.sendChat(chatMessages, apiConfig, {
+      var typingBubble = MI.Components.createTypingBubble();
+      msgList.appendChild(typingBubble);
+      msgList.scrollTop = msgList.scrollHeight;
+
+      var streamBubble = null;
+      var contactType = apiConfig.contactType || 'character';
+
+      MI.API.sendChatStream(chatMessages, apiConfig, {
+        onChunk: function (chunk, accumulated) {
+          if (typingBubble.parentNode) typingBubble.parentNode.removeChild(typingBubble);
+
+          var display = accumulated;
+          if (contactType === 'character') {
+            display = MI.ChatEngine.stripMomentForStream(accumulated);
+          }
+
+          if (!streamBubble) {
+            streamBubble = MI.Components.createMessageBubble(display || ' ', 'assistant');
+            streamBubble.classList.add('msg-streaming');
+            msgList.appendChild(streamBubble);
+          } else {
+            MI.Components.setMessageBubbleContent(streamBubble, display || ' ');
+          }
+          msgList.scrollTop = msgList.scrollHeight;
+        },
         onSuccess: function (reply) {
-          var parsed = MI.ChatEngine.parseAssistantReply(reply);
-          var savedBubbles = [];
+          if (typingBubble.parentNode) typingBubble.parentNode.removeChild(typingBubble);
 
-          MI.ChatEngine.renderBubblesSequentially(msgList, parsed.bubbles, function (bubbleText) {
-            var aiMsg = { role: 'assistant', content: bubbleText, timestamp: Date.now() };
-            chat.messages.push(aiMsg);
-            savedBubbles.push(bubbleText);
-            chat.lastMessage = bubbleText;
-            chat.lastMessageTime = Date.now();
-            self._saveChat(chat);
-          }, function () {
-            if (parsed.moment && character) {
-              MI.ChatEngine.createMomentFromChat(character, parsed.moment);
-              self._showToast('📷 ' + character.name + ' 发了一条朋友圈');
+          if (!reply || !String(reply).trim()) {
+            if (streamBubble && streamBubble.parentNode) streamBubble.parentNode.removeChild(streamBubble);
+            var emptyBubble = document.createElement('div');
+            emptyBubble.className = 'msg-bubble msg-error';
+            emptyBubble.textContent = '⚠️ API 返回了空内容，请检查模型名称或 API 配置';
+            msgList.appendChild(emptyBubble);
+            msgList.scrollTop = msgList.scrollHeight;
+            resetSendUi();
+            return;
+          }
+
+          var processed = MI.ChatEngine.processAssistantReply(reply, chatSettings);
+          var finalText = processed.content;
+          var moment = processed.moment != null ? processed.moment : MI.ChatEngine.extractMoment(reply, contactType);
+
+          if (streamBubble && streamBubble.parentNode) {
+            streamBubble.parentNode.removeChild(streamBubble);
+            streamBubble = null;
+          }
+
+          var aiMsg = {
+            id: MI.Data.genId('msg'),
+            role: 'assistant',
+            content: finalText,
+            parts: processed.parts.slice(),
+            timestamp: Date.now()
+          };
+          chat.messages.push(aiMsg);
+          chat.lastMessage = finalText;
+          chat.lastMessageTime = Date.now();
+          self._saveChat(chat);
+
+          if (contactType === 'character') {
+            var parts = aiMsg.parts;
+            var useSequential = parts.length > 1 &&
+              chatSettings.chatEffect !== 'paragraph' &&
+              chatSettings.chatEffect !== 'immersive';
+
+            if (useSequential) {
+              MI.ChatEngine.renderBubblesSequentially(msgList, parts, {
+                msgId: aiMsg.id,
+                msg: aiMsg,
+                onPartAction: renderOptions.allowActions ? renderOptions.onMessageAction : null
+              }, function () {
+                msgList.scrollTop = msgList.scrollHeight;
+              });
+            } else {
+              var group = MI.Components.createMessageGroup(aiMsg, parts, {
+                onPartAction: renderOptions.allowActions ? renderOptions.onMessageAction : null
+              });
+              msgList.appendChild(group);
             }
-            sendBtn.disabled = false;
-            sendBtn.textContent = '发送';
-            input.disabled = false;
-            input.focus();
-          });
+          } else {
+            var aiGroup = MI.Components.createMessageGroup(aiMsg, [finalText], {});
+            msgList.appendChild(aiGroup);
+          }
+
+          if (moment && character && MI.Data.isCharacter(character)) {
+            var freshChar = MI.Data.getContactById(character.id) || character;
+            var createdMoment = MI.ChatEngine.createMomentFromChat(freshChar, moment);
+            if (createdMoment) {
+              aiMsg.linkedMomentId = createdMoment.id;
+              for (var mi = chat.messages.length - 1; mi >= 0; mi--) {
+                if (chat.messages[mi].id === aiMsg.id) {
+                  chat.messages[mi].linkedMomentId = createdMoment.id;
+                  break;
+                }
+              }
+              self._saveChat(chat);
+              msgList.appendChild(MI.Components.createMomentLinkBubble(createdMoment, freshChar.name));
+              self._showToast(freshChar.name + ' 发了一条朋友圈，点击查看');
+            }
+          }
+
+          msgList.scrollTop = msgList.scrollHeight;
+          resetSendUi();
+          return;
         },
         onError: function (errorMsg) {
-          var typing = msgList.querySelector('.msg-typing');
-          if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
+          if (typingBubble.parentNode) typingBubble.parentNode.removeChild(typingBubble);
+          if (streamBubble && streamBubble.parentNode && !streamBubble.textContent.trim()) {
+            streamBubble.parentNode.removeChild(streamBubble);
+          } else if (streamBubble) {
+            streamBubble.classList.remove('msg-streaming');
+          }
 
           var errBubble = document.createElement('div');
           errBubble.className = 'msg-bubble msg-error';
           errBubble.textContent = '⚠️ ' + errorMsg;
           msgList.appendChild(errBubble);
           msgList.scrollTop = msgList.scrollHeight;
-
-          sendBtn.disabled = false;
-          sendBtn.textContent = '发送';
-          input.disabled = false;
+          resetSendUi();
         },
         onEnd: function () {}
       });
@@ -279,12 +563,12 @@ MI.WeChat = {
       return;
     }
 
-    var momentsRow = MI.Components.createMenuRow('🔵', '朋友圈', '', true, function () {
+    var momentsRow = MI.Components.createMenuRow('images', '朋友圈', '', true, function () {
       MI.Router.navigateTo('moments');
     });
 
-    var wvMoments = MI.Storage.getMomentsByWorldview(MI.Storage.getActiveWorldviewId());
-    if (wvMoments.length > 0) {
+    var unreadCount = MI.MomentNotifications ? MI.MomentNotifications.getUnreadCount() : 0;
+    if (unreadCount > 0) {
       var badge = document.createElement('span');
       badge.className = 'unread-dot';
       var right = momentsRow.querySelector('.menu-row-right');
@@ -318,5 +602,53 @@ MI.WeChat = {
         if (toast.parentNode) toast.parentNode.removeChild(toast);
       }, 300);
     }, 1500);
+  },
+
+  /** 右上角 ＋：创建角色 / 服务号 */
+  showCreateMenu: function () {
+    var overlay = document.createElement('div');
+    overlay.className = 'action-sheet-overlay';
+
+    var sheet = document.createElement('div');
+    sheet.className = 'action-sheet';
+
+    var title = document.createElement('div');
+    title.className = 'action-sheet-title';
+    title.textContent = '创建';
+    sheet.appendChild(title);
+
+    var options = [
+      { icon: 'user-plus', label: '创建角色', page: 'character-create' },
+      { icon: 'screwdriver-wrench', label: '创建服务号', page: 'tool-create' }
+    ];
+
+    for (var i = 0; i < options.length; i++) {
+      (function (opt) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'action-sheet-item';
+        btn.appendChild(MI.Components.buttonContent(opt.icon, opt.label));
+        btn.addEventListener('click', function () {
+          document.body.removeChild(overlay);
+          MI.Router.navigateTo(opt.page);
+        });
+        sheet.appendChild(btn);
+      })(options[i]);
+    }
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'action-sheet-cancel';
+    cancelBtn.textContent = '取消';
+    cancelBtn.addEventListener('click', function () {
+      document.body.removeChild(overlay);
+    });
+    sheet.appendChild(cancelBtn);
+
+    overlay.appendChild(sheet);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) document.body.removeChild(overlay);
+    });
+    document.body.appendChild(overlay);
   }
 };
