@@ -101,6 +101,23 @@ MI.Characters = {
     scroll.appendChild(chatSettingsBtn);
 
     var ms = MI.MomentEngine.getMomentSettings(contact);
+    var momentCount = MI.Moments.countByAuthor(contact.id);
+    scroll.appendChild(this._createSectionTitle('朋友圈'));
+    scroll.appendChild(MI.Components.createDetailRow('已发布', momentCount + ' 条'));
+
+    var viewMomentsBtn = document.createElement('button');
+    viewMomentsBtn.type = 'button';
+    viewMomentsBtn.className = 'btn-glass btn-glass-secondary';
+    viewMomentsBtn.appendChild(MI.Components.buttonContent('images', '查看朋友圈'));
+    viewMomentsBtn.addEventListener('click', function () {
+      MI.Router.navigateTo('moment-author', {
+        authorId: contact.id,
+        contactId: contact.id,
+        chatId: params.chatId || null
+      });
+    });
+    scroll.appendChild(viewMomentsBtn);
+
     scroll.appendChild(this._createSectionTitle('朋友圈设置'));
     scroll.appendChild(MI.Components.createDetailRow('发布频率', MI.MomentEngine.getFrequencyLabel(ms.frequency)));
     scroll.appendChild(MI.Components.createDetailRow('内容来源', MI.MomentEngine.getSourceLabel(ms.source)));
@@ -338,14 +355,27 @@ MI.Characters = {
       var momentLinkBtn = document.createElement('button');
       momentLinkBtn.type = 'button';
       momentLinkBtn.className = 'btn-glass btn-glass-secondary';
-      momentLinkBtn.appendChild(MI.Components.buttonContent('images', '朋友圈设置'));
+      momentLinkBtn.appendChild(MI.Components.buttonContent('images', '查看朋友圈'));
       momentLinkBtn.addEventListener('click', function () {
-        MI.Router.navigateTo('character-moment-settings', {
+        MI.Router.navigateTo('moment-author', {
+          authorId: existing.id,
           contactId: existing.id,
           chatId: (MI.Router.currentParams || {}).chatId || null
         });
       });
       scroll.appendChild(momentLinkBtn);
+
+      var momentSettingsLinkBtn = document.createElement('button');
+      momentSettingsLinkBtn.type = 'button';
+      momentSettingsLinkBtn.className = 'btn-glass btn-glass-secondary';
+      momentSettingsLinkBtn.appendChild(MI.Components.buttonContent('sliders', '朋友圈设置'));
+      momentSettingsLinkBtn.addEventListener('click', function () {
+        MI.Router.navigateTo('character-moment-settings', {
+          contactId: existing.id,
+          chatId: (MI.Router.currentParams || {}).chatId || null
+        });
+      });
+      scroll.appendChild(momentSettingsLinkBtn);
     }
 
     var saveBtn = document.createElement('button');
@@ -546,7 +576,8 @@ MI.Characters = {
         apiModel: data.apiModel,
         usePlayerPersona: data.usePlayerPersona,
         chatSettings: MI.ChatEngine.getDefaultChatSettings(),
-        momentSettings: MI.MomentEngine.getDefaultMomentSettings()
+        momentSettings: MI.MomentEngine.getDefaultMomentSettings(),
+        momentsCover: ''
       };
       contacts.push(newContact);
       MI.Storage.setContacts(contacts);

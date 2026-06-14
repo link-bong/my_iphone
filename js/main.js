@@ -101,6 +101,7 @@ function boot() {
   MI.Data.migrateToV10();
   MI.Data.migrateToV11();
   MI.Data.migrateToV12();
+  MI.Data.migrateToV13();
 
   // 3. 初始化数据（仅确保 AI 助手）
   MI.Data.initSeedData();

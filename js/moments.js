@@ -14,12 +14,37 @@ MI.Moments = {
     return null;
   },
 
+  getByAuthor: function (authorId) {
+    var all = MI.Storage.normalizeMoments();
+    var result = [];
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].authorId === authorId) result.push(all[i]);
+    }
+    result.sort(function (a, b) { return b.timestamp - a.timestamp; });
+    return result;
+  },
+
+  countByAuthor: function (authorId) {
+    return this.getByAuthor(authorId).length;
+  },
+
+  getAuthorCover: function (authorId) {
+    if (authorId === 'player') {
+      return MI.Storage.getProfile().momentsCover || '';
+    }
+    var contact = MI.Data.getContactById(authorId);
+    return contact && contact.momentsCover ? contact.momentsCover : '';
+  },
+
+  getAuthorInfo: function (authorId) {
+    return MI.Data.getAuthorById(authorId);
+  },
+
   render: function (container) {
     this._stopPoll();
     container.classList.add('app-screen');
 
     var params = MI.Router.currentParams || {};
-    var scrollToId = params.momentId || null;
 
     var worldviews = MI.Storage.getWorldviews();
     if (worldviews.length === 0) {
@@ -61,7 +86,7 @@ MI.Moments = {
     coverBtn.appendChild(MI.Components.buttonContent('image', '更换封面'));
     coverBtn.addEventListener('click', function (e) {
       e.preventDefault();
-      MI.Moments._changeCover();
+      MI.Moments._changeCover('player');
     });
     cover.appendChild(coverBtn);
 
@@ -73,7 +98,12 @@ MI.Moments = {
     profileName.textContent = profile.name;
 
     var profileAvatar = MI.Components.createAvatar(profile.avatar, 'large');
-    profileAvatar.classList.add('avatar-glass-border');
+    profileAvatar.classList.add('avatar-glass-border', 'moments-avatar-clickable');
+    profileAvatar.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      MI.Router.navigateTo('moment-author', { authorId: 'player' });
+    });
 
     profileBlock.appendChild(profileName);
     profileBlock.appendChild(profileAvatar);
@@ -95,14 +125,7 @@ MI.Moments = {
     } else {
       for (var i = 0; i < moments.length; i++) {
         var post = moments[i];
-        var author = MI.Data.getAuthorById(post.authorId);
-        var card = MI.Components.createMomentsPost(post, author);
-        card.id = 'moment-' + post.id;
-        if (scrollToId === post.id) {
-          card.classList.add('moment-highlight');
-        }
-        this._bindPostActions(card, post);
-        this._bindCommentActions(card, post);
+        var card = this._buildPostCard(post, { bindAuthor: true, bindOpenDetail: true });
         scroll.appendChild(card);
       }
     }
@@ -110,17 +133,297 @@ MI.Moments = {
     container.appendChild(scroll);
 
     this._startPoll(container);
+  },
 
-    if (scrollToId) {
+  /** 单条朋友圈详情页 */
+  renderDetail: function (container) {
+    this._stopPoll();
+    container.classList.add('app-screen');
+
+    var params = MI.Router.currentParams || {};
+    var post = params.momentId ? this.getById(params.momentId) : null;
+    if (!post) {
+      container.appendChild(MI.Components.createNavBar('朋友圈详情', {
+        showBack: true,
+        onBack: function () { MI.Router.goBack(); }
+      }));
+      container.appendChild(MI.Components.createEmptyState('朋友圈不存在或已删除'));
+      return;
+    }
+
+    var author = this.getAuthorInfo(post.authorId);
+    container.appendChild(MI.Components.createNavBar(author ? author.name : '朋友圈详情', {
+      showBack: true,
+      onBack: function () { MI.Router.goBack(); },
+      rightIcon: 'pen',
+      onRight: function () {
+        MI.Router.navigateTo('moment-edit', { momentId: post.id });
+      }
+    }));
+
+    var scroll = MI.Components.createScrollContainer();
+    scroll.classList.add('moments-scroll', 'moment-detail-scroll');
+
+    var card = this._buildPostCard(post, { bindAuthor: true, bindOpenDetail: false });
+    scroll.appendChild(card);
+    container.appendChild(scroll);
+
+    if (params.commentId) {
       setTimeout(function () {
-        var el = document.getElementById('moment-' + scrollToId);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var line = scroll.querySelector('[data-comment-id="' + params.commentId + '"]');
+        if (line) line.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 200);
     }
   },
 
+  /** 作者朋友圈主页（自己或角色） */
+  renderAuthor: function (container) {
+    this._stopPoll();
+    container.classList.add('app-screen');
+
+    var params = MI.Router.currentParams || {};
+    var authorId = params.authorId || 'player';
+    var author = this.getAuthorInfo(authorId);
+    if (!author) {
+      container.appendChild(MI.Components.createNavBar('朋友圈', {
+        showBack: true,
+        onBack: function () { MI.Router.goBack(); }
+      }));
+      container.appendChild(MI.Components.createEmptyState('用户不存在'));
+      return;
+    }
+
+    var isPlayer = authorId === 'player';
+    var navBar = MI.Components.createNavBar(isPlayer ? '我的朋友圈' : (author.name + ' 的朋友圈'), {
+      showBack: true,
+      onBack: function () { MI.Router.goBack(); }
+    });
+    if (isPlayer) {
+      navBar = MI.Components.createNavBar('我的朋友圈', {
+        showBack: true,
+        onBack: function () { MI.Router.goBack(); },
+        rightIcon: 'pen-to-square',
+        onRight: function () { MI.Router.navigateTo('moment-compose'); }
+      });
+    }
+    container.appendChild(navBar);
+
+    var scroll = MI.Components.createScrollContainer();
+    scroll.classList.add('moments-scroll');
+
+    scroll.appendChild(this._createAuthorCover(authorId, author));
+    scroll.appendChild(this._createAuthorSpacer());
+
+    var posts = this.getByAuthor(authorId);
+    var countEl = document.createElement('div');
+    countEl.className = 'moments-author-count';
+    countEl.textContent = '共 ' + posts.length + ' 条朋友圈';
+    scroll.appendChild(countEl);
+
+    if (posts.length === 0) {
+      scroll.appendChild(MI.Components.createEmptyState(isPlayer ? '暂无朋友圈\n点击右上角发表' : '暂无朋友圈'));
+    } else {
+      for (var i = 0; i < posts.length; i++) {
+        scroll.appendChild(this._buildPostCard(posts[i], { bindAuthor: false, bindOpenDetail: true }));
+      }
+    }
+
+    container.appendChild(scroll);
+  },
+
+  _createAuthorCover: function (authorId, author) {
+    var coverUrl = this.getAuthorCover(authorId);
+    var wrap = document.createElement('div');
+    wrap.className = 'moments-cover';
+
+    if (coverUrl && MI.Media && MI.Media.isImage(coverUrl)) {
+      wrap.style.backgroundImage = 'url(' + coverUrl + ')';
+      wrap.style.backgroundSize = 'cover';
+      wrap.style.backgroundPosition = 'center';
+    }
+
+    var coverBtn = document.createElement('button');
+    coverBtn.type = 'button';
+    coverBtn.className = 'moments-cover-change-btn';
+    coverBtn.appendChild(MI.Components.buttonContent('image', '更换封面'));
+    coverBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      MI.Moments._changeCover(authorId);
+    });
+    wrap.appendChild(coverBtn);
+
+    var profileBlock = document.createElement('div');
+    profileBlock.className = 'moments-profile';
+
+    var profileName = document.createElement('div');
+    profileName.className = 'moments-profile-name';
+    profileName.textContent = author.name;
+
+    var profileAvatar = MI.Components.createAvatar(author.avatar, 'large', author);
+    profileAvatar.classList.add('avatar-glass-border');
+
+    profileBlock.appendChild(profileName);
+    profileBlock.appendChild(profileAvatar);
+    wrap.appendChild(profileBlock);
+    return wrap;
+  },
+
+  _createAuthorSpacer: function () {
+    var spacer = document.createElement('div');
+    spacer.className = 'moments-spacer';
+    return spacer;
+  },
+
+  _buildPostCard: function (post, options) {
+    options = options || {};
+    var author = this.getAuthorInfo(post.authorId);
+    var card = MI.Components.createMomentsPost(post, author);
+    card.id = 'moment-' + post.id;
+
+    if (options.bindAuthor) this._bindAuthorClick(card, post);
+    if (options.bindOpenDetail) this._bindOpenDetail(card, post);
+
+    this._bindPostActions(card, post);
+    this._bindCommentActions(card, post);
+    return card;
+  },
+
+  _bindAuthorClick: function (card, post) {
+    var header = card.querySelector('.post-header');
+    if (!header) return;
+    var avatar = header.querySelector('.avatar');
+    var nameEl = header.querySelector('.post-author-name');
+    function go() {
+      MI.Router.navigateTo('moment-author', { authorId: post.authorId });
+    }
+    if (avatar) {
+      avatar.classList.add('moments-avatar-clickable');
+      avatar.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        go();
+      });
+    }
+    if (nameEl) {
+      nameEl.classList.add('post-author-clickable');
+      nameEl.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        go();
+      });
+    }
+  },
+
+  _bindOpenDetail: function (card, post) {
+    var parts = card.querySelectorAll('.post-text, .post-images, .post-timestamp');
+    for (var i = 0; i < parts.length; i++) {
+      parts[i].classList.add('post-open-detail');
+      parts[i].addEventListener('click', function (e) {
+        e.preventDefault();
+        MI.Router.navigateTo('moment-detail', { momentId: post.id });
+      });
+    }
+  },
+
+  /** 互动消息列表页（微信式：查看全部后点进对应朋友圈） */
+  renderNotifications: function (container) {
+    container.classList.add('app-screen');
+
+    var unreadCount = MI.MomentNotifications ? MI.MomentNotifications.getUnreadCount() : 0;
+    var navTitle = unreadCount > 0 ? ('消息 (' + unreadCount + ')') : '消息';
+
+    container.appendChild(MI.Components.createNavBar(navTitle, {
+      showBack: true,
+      onBack: function () { MI.Router.goBack(); }
+    }));
+
+    var scroll = MI.Components.createScrollContainer();
+    scroll.classList.add('moment-notif-page');
+
+    if (!MI.MomentNotifications) {
+      scroll.appendChild(MI.Components.createEmptyState('暂无互动消息'));
+      container.appendChild(scroll);
+      return;
+    }
+
+    var list = MI.MomentNotifications.getAllSorted();
+    if (list.length === 0) {
+      scroll.appendChild(MI.Components.createEmptyState('暂无互动消息'));
+    } else {
+      for (var i = 0; i < list.length; i++) {
+        scroll.appendChild(this._createNotificationItem(list[i]));
+      }
+    }
+
+    container.appendChild(scroll);
+  },
+
+  /** 从互动消息跳转到朋友圈详情页 */
+  openFromNotification: function (notification) {
+    if (!notification) return;
+
+    if (MI.MomentNotifications) {
+      MI.MomentNotifications.markReadById(notification.id);
+    }
+
+    MI.Router.navigateTo('moment-detail', {
+      momentId: notification.momentId,
+      commentId: notification.commentId || null
+    });
+  },
+
+  _createNotificationItem: function (n) {
+    var self = this;
+    var item = document.createElement('div');
+    item.className = 'moments-notif-item' + (n.read ? ' moments-notif-read' : '');
+
+    var actorInfo = MI.Data.getAuthorById(n.actorId);
+    item.appendChild(MI.Components.createAvatar(actorInfo ? actorInfo.avatar : '😊', 'small', actorInfo));
+
+    var body = document.createElement('div');
+    body.className = 'moments-notif-item-body';
+
+    var line = document.createElement('div');
+    line.className = 'moments-notif-item-text';
+    line.textContent = MI.MomentNotifications.formatText(n);
+
+    var time = document.createElement('div');
+    time.className = 'moments-notif-item-time';
+    time.textContent = MI.Components._formatFullTime(n.timestamp);
+
+    var preview = MI.Moments.getById(n.momentId);
+    if (preview && preview.content) {
+      var excerpt = document.createElement('div');
+      excerpt.className = 'moments-notif-item-preview';
+      var previewText = preview.content.slice(0, 48);
+      if (preview.content.length > 48) previewText += '…';
+      excerpt.textContent = previewText;
+      body.appendChild(line);
+      body.appendChild(excerpt);
+    } else {
+      body.appendChild(line);
+    }
+    body.appendChild(time);
+    item.appendChild(body);
+
+    if (!n.read) {
+      var dot = document.createElement('span');
+      dot.className = 'moments-notif-item-dot';
+      item.appendChild(dot);
+    }
+
+    item.addEventListener('click', function (e) {
+      e.preventDefault();
+      self.openFromNotification(n);
+    });
+
+    return item;
+  },
+
   refreshIfVisible: function () {
-    if (MI.Router.currentPage() === 'moments') {
+    var page = MI.Router.currentPage();
+    if (page === 'moments' || page === 'moment-notifications' ||
+        page === 'moment-detail' || page === 'moment-author') {
       MI.Router.render();
     }
   },
@@ -171,13 +474,11 @@ MI.Moments = {
       var card = document.getElementById('moment-' + post.id);
       if (!card) continue;
       var author = MI.Data.getAuthorById(post.authorId);
-      var fresh = MI.Components.createMomentsPost(post, author);
+      var fresh = this._buildPostCard(post, { bindAuthor: true, bindOpenDetail: true });
       fresh.id = 'moment-' + post.id;
       if (card.classList.contains('moment-highlight')) {
         fresh.classList.add('moment-highlight');
       }
-      this._bindPostActions(fresh, post);
-      this._bindCommentActions(fresh, post);
       card.parentNode.replaceChild(fresh, card);
     }
 
@@ -189,7 +490,6 @@ MI.Moments = {
     var unread = MI.MomentNotifications.getUnread();
     if (unread.length === 0) return null;
 
-    var self = this;
     var bar = document.createElement('div');
     bar.className = 'moments-notifications';
 
@@ -212,70 +512,38 @@ MI.Moments = {
 
     summary.appendChild(avatars);
     summary.appendChild(text);
-    summary.appendChild(MI.Components.icon('chevron-down', 'moments-notif-chevron'));
-
-    var list = document.createElement('div');
-    list.className = 'moments-notif-list';
-
-    for (var i = 0; i < unread.length; i++) {
-      (function (n) {
-        var item = document.createElement('div');
-        item.className = 'moments-notif-item';
-
-        var actorInfo = MI.Data.getAuthorById(n.actorId);
-        item.appendChild(MI.Components.createAvatar(actorInfo ? actorInfo.avatar : '😊', 'small', actorInfo));
-
-        var body = document.createElement('div');
-        body.className = 'moments-notif-item-body';
-
-        var line = document.createElement('div');
-        line.className = 'moments-notif-item-text';
-        line.textContent = MI.MomentNotifications.formatText(n);
-
-        var time = document.createElement('div');
-        time.className = 'moments-notif-item-time';
-        time.textContent = MI.Components._formatFullTime(n.timestamp);
-
-        body.appendChild(line);
-        body.appendChild(time);
-        item.appendChild(body);
-
-        item.addEventListener('click', function (e) {
-          e.preventDefault();
-          MI.MomentNotifications.markReadByMoment(n.momentId);
-          bar.classList.remove('expanded');
-          var el = document.getElementById('moment-' + n.momentId);
-          if (el) {
-            el.classList.add('moment-highlight');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(function () { el.classList.remove('moment-highlight'); }, 2000);
-          }
-          self._updateLive(document.querySelector('.app-screen') || document.getElementById('app'));
-        });
-
-        list.appendChild(item);
-      })(unread[i]);
-    }
+    summary.appendChild(MI.Components.icon('chevron-right', 'moments-notif-chevron'));
 
     summary.addEventListener('click', function (e) {
       e.preventDefault();
-      bar.classList.toggle('expanded');
+      MI.Router.navigateTo('moment-notifications');
     });
 
     bar.appendChild(summary);
-    bar.appendChild(list);
     return bar;
   },
 
-  _changeCover: function () {
+  _changeCover: function (authorId) {
+    authorId = authorId || 'player';
     if (!MI.Media || !MI.Media.pickImage) {
       MI.Components.showToast('当前环境不支持图片上传');
       return;
     }
     MI.Media.pickImage(function (dataUrl) {
-      var profile = MI.Storage.getProfile();
-      profile.momentsCover = dataUrl;
-      MI.Storage.setProfile(profile);
+      if (authorId === 'player') {
+        var profile = MI.Storage.getProfile();
+        profile.momentsCover = dataUrl;
+        MI.Storage.setProfile(profile);
+      } else {
+        var contacts = MI.Storage.getContacts();
+        for (var i = 0; i < contacts.length; i++) {
+          if (contacts[i].id === authorId) {
+            contacts[i].momentsCover = dataUrl;
+            break;
+          }
+        }
+        MI.Storage.setContacts(contacts);
+      }
       MI.Router.render();
     }, function (err) {
       MI.Components.showToast(err || '上传失败');
@@ -449,7 +717,8 @@ MI.Moments = {
       if (moments[i].id !== momentId) filtered.push(moments[i]);
     }
     MI.Storage.setMoments(filtered);
-    if (goBackAfter) {
+    var page = MI.Router.currentPage();
+    if (goBackAfter || page === 'moment-detail' || page === 'moment-edit') {
       MI.Router.goBack();
     } else {
       MI.Router.render();
@@ -598,20 +867,51 @@ MI.Moments = {
       onClick: function () {
         self._toggleCommentComposer(card, post, commentId);
       }
+    }, {
+      label: '编辑',
+      icon: 'pen',
+      onClick: function () {
+        self._editComment(post.id, commentId);
+      }
+    }, {
+      label: '删除',
+      icon: 'trash',
+      danger: true,
+      onClick: function () {
+        self._confirmDeleteComment(post, commentId);
+      }
     }];
 
-    if (comment.authorId === 'player') {
-      items.push({
-        label: '删除',
-        icon: 'trash',
-        danger: true,
-        onClick: function () {
-          self._confirmDeleteComment(post, commentId);
-        }
-      });
-    }
-
     MI.Components.showActionSheet('评论', items);
+  },
+
+  _editComment: function (momentId, commentId) {
+    var post = this.getById(momentId);
+    if (!post) return;
+    var comment = this._findComment(post, commentId);
+    if (!comment) return;
+
+    MI.Components.showPromptDialog('编辑评论', comment.content, function (text) {
+      var moments = MI.Storage.getMoments();
+      for (var i = 0; i < moments.length; i++) {
+        if (moments[i].id !== momentId) continue;
+        if (!moments[i].comments) break;
+        for (var j = 0; j < moments[i].comments.length; j++) {
+          if (moments[i].comments[j].id === commentId) {
+            moments[i].comments[j].content = text;
+            break;
+          }
+        }
+        break;
+      }
+      MI.Storage.setMoments(moments);
+      MI.Router.render();
+    }, null, {
+      validate: function (val) {
+        if (!val || !val.trim()) return '评论不能为空';
+        return null;
+      }
+    });
   },
 
   _confirmDeleteComment: function (post, commentId) {

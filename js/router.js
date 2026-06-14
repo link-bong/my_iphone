@@ -234,6 +234,15 @@ MI.Router = {
       case 'moments':
         MI.Moments.render(screen);
         break;
+      case 'moment-detail':
+        MI.Moments.renderDetail(screen);
+        break;
+      case 'moment-author':
+        MI.Moments.renderAuthor(screen);
+        break;
+      case 'moment-notifications':
+        MI.Moments.renderNotifications(screen);
+        break;
       case 'moment-compose':
         MI.Moments.renderCompose(screen);
         break;

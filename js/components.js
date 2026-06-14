@@ -1258,7 +1258,7 @@ MI.Components = {
     wrap.setAttribute('data-moment-id', moment.id);
     wrap.addEventListener('click', function (e) {
       e.preventDefault();
-      MI.Router.navigateTo('moments', { momentId: moment.id });
+      MI.Router.navigateTo('moment-detail', { momentId: moment.id });
     });
     return wrap;
   },
@@ -1416,32 +1416,46 @@ MI.Components = {
         interactionBar.appendChild(likesBar);
       }
 
-      // 评论（含回复）
+      // 评论（含多级嵌套回复）
       if (hasComments) {
         var commentsEl = document.createElement('div');
         commentsEl.className = 'comments-bar';
-        var topComments = [];
+
+        var commentMap = {};
         var repliesByParent = {};
+        var topComments = [];
+
         for (var k = 0; k < post.comments.length; k++) {
           var c = post.comments[k];
-          if (c.replyTo) {
-            if (!repliesByParent[c.replyTo]) repliesByParent[c.replyTo] = [];
-            repliesByParent[c.replyTo].push(c);
+          commentMap[c.id] = c;
+        }
+
+        for (var k2 = 0; k2 < post.comments.length; k2++) {
+          var c2 = post.comments[k2];
+          if (c2.replyTo) {
+            if (commentMap[c2.replyTo]) {
+              if (!repliesByParent[c2.replyTo]) repliesByParent[c2.replyTo] = [];
+              repliesByParent[c2.replyTo].push(c2);
+            } else {
+              topComments.push(c2);
+            }
           } else {
-            topComments.push(c);
+            topComments.push(c2);
           }
         }
 
-        function appendCommentLine(parentEl, comment, isReply, commentMap) {
+        topComments.sort(function (a, b) { return a.timestamp - b.timestamp; });
+
+        function appendCommentLine(parentEl, comment, commentMap) {
           var commentAuthor = MI.Data.getAuthorById(comment.authorId);
           var commentLine = document.createElement('div');
-          commentLine.className = 'comment-line comment-line-clickable' + (isReply ? ' comment-reply' : '');
+          commentLine.className = 'comment-line comment-line-clickable';
           commentLine.setAttribute('data-comment-id', comment.id);
 
           var commentName = document.createElement('span');
           commentName.className = 'comment-name';
           var nameText = (commentAuthor ? commentAuthor.name : '未知');
-          if (isReply && comment.replyTo && commentMap[comment.replyTo]) {
+          if (comment.replyTo && commentMap[comment.replyTo]) {
             var parentAuthor = MI.Data.getAuthorById(commentMap[comment.replyTo].authorId);
             nameText += ' 回复 ' + (parentAuthor ? parentAuthor.name : '未知');
           }
@@ -1455,19 +1469,19 @@ MI.Components = {
           parentEl.appendChild(commentLine);
         }
 
-        var commentMap = {};
-        for (var m = 0; m < post.comments.length; m++) {
-          commentMap[post.comments[m].id] = post.comments[m];
+        function renderCommentSubtree(parentEl, comment) {
+          appendCommentLine(parentEl, comment, commentMap);
+          var children = repliesByParent[comment.id] || [];
+          children.sort(function (a, b) { return a.timestamp - b.timestamp; });
+          for (var ci = 0; ci < children.length; ci++) {
+            renderCommentSubtree(parentEl, children[ci]);
+          }
         }
 
         for (var t = 0; t < topComments.length; t++) {
-          var top = topComments[t];
-          appendCommentLine(commentsEl, top, false, commentMap);
-          var replies = repliesByParent[top.id] || [];
-          for (var r = 0; r < replies.length; r++) {
-            appendCommentLine(commentsEl, replies[r], true, commentMap);
-          }
+          renderCommentSubtree(commentsEl, topComments[t]);
         }
+
         interactionBar.appendChild(commentsEl);
       }
 

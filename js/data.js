@@ -458,6 +458,23 @@ MI.Data = {
     console.log('✅ 已迁移到 schema v12：朋友圈互动通知');
   },
 
+  /** schema v13：角色朋友圈封面 */
+  migrateToV13: function () {
+    var meta = MI.Storage.getMeta();
+    if (meta.schemaVersion >= 13) return;
+
+    var contacts = MI.Storage.getContacts();
+    for (var i = 0; i < contacts.length; i++) {
+      if (contacts[i].type === 'character' && contacts[i].momentsCover == null) {
+        contacts[i].momentsCover = '';
+      }
+    }
+    MI.Storage.setContacts(contacts);
+
+    MI.Storage.setMeta({ schemaVersion: 13 });
+    console.log('✅ 已迁移到 schema v13：角色朋友圈封面');
+  },
+
   _mapRelationshipKey: function (value) {
     if (!value) return 'friend';
     var prompts = MI.ChatEngine.RELATIONSHIP_PROMPTS;

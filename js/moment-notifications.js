@@ -68,6 +68,25 @@ MI.MomentNotifications = {
     if (changed) this.setAll(list);
   },
 
+  markReadById: function (notificationId) {
+    var list = this.getAll();
+    var changed = false;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === notificationId && !list[i].read) {
+        list[i].read = true;
+        changed = true;
+        break;
+      }
+    }
+    if (changed) this.setAll(list);
+  },
+
+  getAllSorted: function () {
+    var list = this.getAll().slice();
+    list.sort(function (a, b) { return b.timestamp - a.timestamp; });
+    return list;
+  },
+
   notifyLike: function (momentId, actorId) {
     this.add({
       type: 'like',

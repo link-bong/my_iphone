@@ -1113,11 +1113,49 @@ html, body {
 .moments-notif-chevron {
   font-size: 12px;
   color: var(--text-tertiary);
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
-.moments-notifications.expanded .moments-notif-chevron {
-  transform: rotate(180deg);
+.moment-notif-page {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.moment-notif-page .moments-notif-item {
+  margin: 0;
+  border-bottom: 0.5px solid var(--glass-border-subtle);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.moments-notif-read {
+  opacity: 0.72;
+}
+
+.moments-notif-item-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-blue-light), var(--accent-blue-deep));
+  align-self: center;
+  margin-left: 6px;
+}
+
+.moments-notif-item-preview {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.comment-highlight {
+  animation: comment-highlight-pulse 1.2s ease 2;
+  border-radius: 4px;
+}
+
+@keyframes comment-highlight-pulse {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(74, 111, 165, 0.15); }
 }
 
 .moments-notif-list {
@@ -2242,8 +2280,35 @@ select.setting-input {
 }
 
 .comment-reply {
-  padding-left: 16px;
-  opacity: 0.92;
+  opacity: 1;
+}
+
+.moments-avatar-clickable,
+.post-author-clickable {
+  cursor: pointer;
+}
+
+.post-author-clickable:active {
+  opacity: 0.7;
+}
+
+.moments-avatar-clickable:active {
+  opacity: 0.85;
+}
+
+.post-open-detail {
+  cursor: pointer;
+}
+
+.moments-author-count {
+  padding: 10px 16px 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.moment-detail-scroll {
+  padding-top: 8px;
 }
 
 .comment-line-clickable {
