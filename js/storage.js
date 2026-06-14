@@ -105,12 +105,60 @@ MI.Storage = {
   getNavigation: function () {
     return this.get('mi_navigation', {
       stack: ['home'],
-      wechatTab: 'chats'
+      wechatTab: 'chats',
+      activeWorldviewId: null
     });
   },
 
   setNavigation: function (nav) {
     this.set('mi_navigation', nav);
+  },
+
+  getMeta: function () {
+    return this.get('mi_meta', { schemaVersion: 1 });
+  },
+
+  setMeta: function (meta) {
+    this.set('mi_meta', meta);
+  },
+
+  getWorldviews: function () {
+    return this.get('mi_worldviews', []);
+  },
+
+  setWorldviews: function (worldviews) {
+    this.set('mi_worldviews', worldviews);
+  },
+
+  getWorldviewById: function (id) {
+    var list = this.getWorldviews();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return null;
+  },
+
+  getActiveWorldviewId: function () {
+    var nav = this.getNavigation();
+    if (nav.activeWorldviewId) return nav.activeWorldviewId;
+    var wvs = this.getWorldviews();
+    return wvs.length > 0 ? wvs[0].id : null;
+  },
+
+  setActiveWorldviewId: function (id) {
+    var nav = this.getNavigation();
+    nav.activeWorldviewId = id;
+    this.setNavigation(nav);
+  },
+
+  getMomentsByWorldview: function (worldviewId) {
+    var all = this.getMoments();
+    if (!worldviewId) return all;
+    var filtered = [];
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].worldviewId === worldviewId) filtered.push(all[i]);
+    }
+    return filtered;
   },
 
   /**

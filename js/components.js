@@ -18,7 +18,22 @@ MI.Components = {
 
     var right = document.createElement('div');
     right.className = 'status-right';
-    right.innerHTML = '📶 📡 🔋';
+
+    var signal = document.createElement('div');
+    signal.className = 'status-icon status-icon-signal';
+    for (var s = 0; s < 4; s++) {
+      signal.appendChild(document.createElement('span'));
+    }
+
+    var wifi = document.createElement('div');
+    wifi.className = 'status-icon status-icon-wifi';
+
+    var battery = document.createElement('div');
+    battery.className = 'status-icon status-icon-battery';
+
+    right.appendChild(signal);
+    right.appendChild(wifi);
+    right.appendChild(battery);
 
     bar.appendChild(left);
     bar.appendChild(right);
@@ -37,23 +52,34 @@ MI.Components = {
 
   /**
    * 导航栏
-   * @param {string} title - 标题
-   * @param {boolean} showBack - 是否显示返回按钮
-   * @param {string} rightText - 右侧按钮文字（可选）
-   * @param {Function} onBack - 返回回调
-   * @param {Function} onRight - 右侧按钮回调
+   * @param {string} title
+   * @param {Object} opts - { showBack, showHome, rightText, onBack, onHome, onRight }
    */
-  createNavBar: function (title, showBack, rightText, onBack, onRight) {
+  createNavBar: function (title, opts) {
+    opts = opts || {};
     var bar = document.createElement('div');
     bar.className = 'nav-bar';
 
-    if (showBack) {
+    if (opts.showHome) {
+      var homeBtn = document.createElement('div');
+      homeBtn.className = 'nav-home-btn';
+      homeBtn.textContent = '⌂';
+      homeBtn.title = '返回主屏幕';
+      homeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (opts.onHome) opts.onHome();
+      });
+      bar.appendChild(homeBtn);
+    }
+
+    if (opts.showBack) {
       var backBtn = document.createElement('div');
       backBtn.className = 'nav-back-btn';
+      if (opts.showHome) backBtn.style.left = '44px';
       backBtn.textContent = '← 返回';
       backBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        if (onBack) onBack();
+        if (opts.onBack) opts.onBack();
       });
       bar.appendChild(backBtn);
     }
@@ -63,13 +89,13 @@ MI.Components = {
     titleEl.textContent = title;
     bar.appendChild(titleEl);
 
-    if (rightText) {
+    if (opts.rightText) {
       var rightBtn = document.createElement('div');
       rightBtn.className = 'nav-right-btn';
-      rightBtn.textContent = rightText;
+      rightBtn.textContent = opts.rightText;
       rightBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        if (onRight) onRight();
+        if (opts.onRight) opts.onRight();
       });
       bar.appendChild(rightBtn);
     }
@@ -315,8 +341,8 @@ MI.Components = {
         likesBar.className = 'likes-bar';
         var likeNames = [];
         for (var j = 0; j < post.likes.length; j++) {
-          var contact = MI.Data.getContactById(post.likes[j]);
-          likeNames.push(contact ? contact.name : '未知');
+          var likeAuthor = MI.Data.getAuthorById(post.likes[j]);
+          likeNames.push(likeAuthor ? likeAuthor.name : '未知');
         }
         likesBar.textContent = '❤️ ' + likeNames.join(', ');
         interactionBar.appendChild(likesBar);
@@ -328,13 +354,13 @@ MI.Components = {
         commentsEl.className = 'comments-bar';
         for (var k = 0; k < post.comments.length; k++) {
           var comment = post.comments[k];
-          var commentContact = MI.Data.getContactById(comment.authorId);
+          var commentAuthor = MI.Data.getAuthorById(comment.authorId);
           var commentLine = document.createElement('div');
           commentLine.className = 'comment-line';
 
           var commentName = document.createElement('span');
           commentName.className = 'comment-name';
-          commentName.textContent = (commentContact ? commentContact.name : '未知') + '：';
+          commentName.textContent = (commentAuthor ? commentAuthor.name : '未知') + '：';
 
           var commentText = document.createElement('span');
           commentText.textContent = comment.content;
@@ -364,14 +390,32 @@ MI.Components = {
   /**
    * 主屏幕应用图标
    */
-  createAppIcon: function (emoji, label, color, onClick) {
+  createAppIcon: function (emoji, label, appId, onClick, isDock) {
     var icon = document.createElement('div');
     icon.className = 'app-icon';
 
     var img = document.createElement('div');
-    img.className = 'app-icon-img';
-    img.style.background = color || '#007AFF';
-    img.textContent = emoji;
+    img.className = 'app-icon-img app-glass app-glass--' + (appId || 'default');
+    if (isDock) img.classList.add('app-glass-sm');
+
+    // 微信图标：额外虹彩层
+    if (appId === 'wechat' || appId === 'wechat_dock') {
+      var sheen = document.createElement('div');
+      sheen.className = 'app-glass-sheen';
+      img.appendChild(sheen);
+      var depth = document.createElement('div');
+      depth.className = 'app-glass-depth';
+      img.appendChild(depth);
+    }
+
+    var inner = document.createElement('div');
+    inner.className = 'app-glass-inner';
+
+    var emojiEl = document.createElement('span');
+    emojiEl.className = 'app-glass-emoji';
+    emojiEl.textContent = emoji;
+    inner.appendChild(emojiEl);
+    img.appendChild(inner);
 
     var lbl = document.createElement('div');
     lbl.className = 'app-icon-label';

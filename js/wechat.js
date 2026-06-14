@@ -1,47 +1,37 @@
 /**
  * wechat.js — 微信应用核心
- * 包含：Tab 切换框架、聊天列表、聊天详情（含 API 集成）、发现页
  */
 window.MI = window.MI || {};
 
 MI.WeChat = {
-  /**
-   * 渲染微信主界面（Tab 框架）
-   */
   render: function (container) {
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.height = '100%';
-    container.style.background = '#EDEDED';
+    container.classList.add('app-screen');
 
-    // 导航栏
-    var navBar = MI.Components.createNavBar('微信', false, '＋', null, function () {
-      MI.WeChat._showToast('添加联系人功能开发中...');
+    var navBar = MI.Components.createNavBar('微信', {
+      showHome: true,
+      onHome: function () { MI.Router.goHome(); },
+      rightText: '＋',
+      onRight: function () {
+        MI.Router.navigateTo('character-create');
+      }
     });
     container.appendChild(navBar);
 
-    // Tab 内容区域
     var tabContent = document.createElement('div');
     tabContent.className = 'wechat-tab-content';
     tabContent.id = 'wechat-tab-content';
-    tabContent.style.cssText = 'flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;';
 
     var tab = MI.Router.wechatTab || 'chats';
     this._renderTabContent(tabContent, tab);
 
     container.appendChild(tabContent);
 
-    // 底部 Tab 栏
-    var self = this;
     var tabBar = MI.Components.createTabBar(tab, function (tabId) {
       MI.Router.switchWechatTab(tabId);
     });
     container.appendChild(tabBar);
   },
 
-  /**
-   * 渲染 Tab 内容
-   */
   _renderTabContent: function (container, tabId) {
     container.innerHTML = '';
 
@@ -61,19 +51,14 @@ MI.WeChat = {
     }
   },
 
-  // ==================== 聊天列表 ====================
-
   _renderChatsList: function (container) {
     var chats = MI.Storage.getChats();
 
     if (chats.length === 0) {
-      var empty = MI.Components.createEmptyState('暂无聊天记录\n点击右上角 ＋ 开始新对话');
-      empty.style.cssText += 'text-align:center;padding:60px 20px;color:#8E8E93;font-size:15px;white-space:pre-line;';
-      container.appendChild(empty);
+      container.appendChild(MI.Components.createEmptyState('暂无聊天记录\n点击右上角 ＋ 创建角色'));
       return;
     }
 
-    // 按时间排序
     chats.sort(function (a, b) {
       return (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
     });
@@ -81,12 +66,10 @@ MI.WeChat = {
     for (var i = 0; i < chats.length; i++) {
       var chat = chats[i];
       var contact = MI.Data.getContactForChat(chat);
-      var self = this;
       var item = MI.Components.createChatListItem(chat, contact, function (c) {
         MI.Router.navigateTo('chat-detail', { chatId: c.id });
       });
 
-      // 分隔线
       if (i < chats.length - 1) {
         item.appendChild(MI.Components.createDivider());
       }
@@ -94,8 +77,6 @@ MI.WeChat = {
       container.appendChild(item);
     }
   },
-
-  // ==================== 聊天详情（核心） ====================
 
   renderChatDetail: function (container) {
     var params = MI.Router.currentParams;
@@ -119,38 +100,32 @@ MI.WeChat = {
     }
 
     var contact = MI.Data.getContactForChat(chat);
+    var character = chat.contactId ? MI.Data.getContactById(chat.contactId) : null;
 
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.height = '100%';
-    container.style.background = '#EDEDED';
+    container.classList.add('app-screen');
 
-    // 导航栏（带返回按钮）
     var self = this;
-    var navBar = MI.Components.createNavBar(
-      contact.name,
-      true,
-      null,
-      function () { MI.Router.goBack(); },
-      null
-    );
+    var navBar = MI.Components.createNavBar(contact.name, {
+      showBack: true,
+      onBack: function () { MI.Router.goBack(); },
+      rightText: character ? '⋯' : null,
+      onRight: character ? function () {
+        MI.Router.navigateTo('character-edit', { contactId: character.id });
+      } : null
+    });
     container.appendChild(navBar);
 
-    // 消息列表
     var msgList = document.createElement('div');
     msgList.className = 'msg-list';
     msgList.id = 'chat-msg-list';
     container.appendChild(msgList);
 
-    // 渲染消息
     this._renderMessages(msgList, chat.messages);
 
-    // 滚动到底部
     setTimeout(function () {
       msgList.scrollTop = msgList.scrollHeight;
     }, 100);
 
-    // 输入栏
     var inputBar = document.createElement('div');
     inputBar.className = 'input-bar';
     inputBar.id = 'chat-input-bar';
@@ -170,8 +145,7 @@ MI.WeChat = {
     inputBar.appendChild(sendBtn);
     container.appendChild(inputBar);
 
-    // 事件绑定
-    this._bindChatEvents(chat, chatId);
+    this._bindChatEvents(chat, character);
   },
 
   _renderMessages: function (container, messages) {
@@ -184,33 +158,31 @@ MI.WeChat = {
     }
   },
 
-  _bindChatEvents: function (chat, chatId) {
+  _bindChatEvents: function (chat, character) {
     var input = document.getElementById('chat-text-input');
     var sendBtn = document.getElementById('chat-send-btn');
     var msgList = document.getElementById('chat-msg-list');
-    var inputBar = document.getElementById('chat-input-bar');
     var self = this;
 
     if (!input || !sendBtn || !msgList) return;
 
-    // 发送消息函数
+    var apiConfig = character
+      ? MI.ChatEngine.getApiConfigForContact(character)
+      : MI.ChatEngine.getApiConfigForAi();
+
     var doSend = function () {
       var text = input.value.trim();
-      if (!text) return;
+      if (!text || sendBtn.disabled) return;
 
-      // 检查发送状态
-      if (sendBtn.disabled) return;
-
-      // 再次检查 API Key
-      var config = MI.Storage.getConfig();
-      if (!config.apiKey || config.apiKey.trim() === '') {
-        alert('请先在「我 → API 设置」中填写你的 API Key 才能聊天哦！');
+      if (!apiConfig || !apiConfig.apiKey) {
+        alert(character
+          ? '请先在角色编辑页填写该角色的 API Key'
+          : '请先在「我 → AI 助手设置」中填写 API Key');
         return;
       }
 
       input.value = '';
 
-      // 1. 添加用户消息到 UI 和 chat
       var userBubble = MI.Components.createMessageBubble(text, 'user');
       msgList.appendChild(userBubble);
       msgList.scrollTop = msgList.scrollHeight;
@@ -221,65 +193,56 @@ MI.WeChat = {
       chat.lastMessageTime = Date.now();
       self._saveChat(chat);
 
-      // 2. 显示打字动画
-      var typingBubble = MI.Components.createTypingBubble();
-      msgList.appendChild(typingBubble);
-      msgList.scrollTop = msgList.scrollHeight;
-
-      // 3. 禁用输入（Bug 修复 3）
       sendBtn.disabled = true;
       sendBtn.textContent = '...';
       input.disabled = true;
 
-      // 4. 构建消息历史（仅此 chat 的消息）
       var chatMessages = chat.messages.slice();
-      // Bug 修复 6：截断到最近 40 条
       if (chatMessages.length > 40) {
         chatMessages.splice(0, chatMessages.length - 40);
       }
 
-      // 5. 调用 API
-      MI.API.sendChat(chatMessages, {
-        onStart: function () {
-          // typing 动画已显示
-        },
+      MI.API.sendChat(chatMessages, apiConfig, {
         onSuccess: function (reply) {
-          // 移除打字动画
-          if (typingBubble.parentNode) typingBubble.parentNode.removeChild(typingBubble);
+          var parsed = MI.ChatEngine.parseAssistantReply(reply);
+          var savedBubbles = [];
 
-          // 添加 AI 回复
-          var aiBubble = MI.Components.createMessageBubble(reply, 'assistant');
-          msgList.appendChild(aiBubble);
-          msgList.scrollTop = msgList.scrollHeight;
-
-          var aiMsg = { role: 'assistant', content: reply, timestamp: Date.now() };
-          chat.messages.push(aiMsg);
-          chat.lastMessage = reply;
-          chat.lastMessageTime = Date.now();
-          self._saveChat(chat);
+          MI.ChatEngine.renderBubblesSequentially(msgList, parsed.bubbles, function (bubbleText) {
+            var aiMsg = { role: 'assistant', content: bubbleText, timestamp: Date.now() };
+            chat.messages.push(aiMsg);
+            savedBubbles.push(bubbleText);
+            chat.lastMessage = bubbleText;
+            chat.lastMessageTime = Date.now();
+            self._saveChat(chat);
+          }, function () {
+            if (parsed.moment && character) {
+              MI.ChatEngine.createMomentFromChat(character, parsed.moment);
+              self._showToast('📷 ' + character.name + ' 发了一条朋友圈');
+            }
+            sendBtn.disabled = false;
+            sendBtn.textContent = '发送';
+            input.disabled = false;
+            input.focus();
+          });
         },
         onError: function (errorMsg) {
-          // 移除打字动画
-          if (typingBubble.parentNode) typingBubble.parentNode.removeChild(typingBubble);
+          var typing = msgList.querySelector('.msg-typing');
+          if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
 
-          // 显示错误
           var errBubble = document.createElement('div');
           errBubble.className = 'msg-bubble msg-error';
           errBubble.textContent = '⚠️ ' + errorMsg;
           msgList.appendChild(errBubble);
           msgList.scrollTop = msgList.scrollHeight;
-        },
-        onEnd: function () {
-          // 恢复输入
+
           sendBtn.disabled = false;
           sendBtn.textContent = '发送';
           input.disabled = false;
-          input.focus();
-        }
+        },
+        onEnd: function () {}
       });
     };
 
-    // Bug 修复 7：Enter 发送、Shift+Enter 换行
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -293,9 +256,6 @@ MI.WeChat = {
     });
   },
 
-  /**
-   * 保存 chat 到 localStorage
-   */
   _saveChat: function (chat) {
     var chats = MI.Storage.getChats();
     var found = false;
@@ -306,43 +266,38 @@ MI.WeChat = {
         break;
       }
     }
-    if (!found) {
-      chats.push(chat);
-    }
+    if (!found) chats.push(chat);
     MI.Storage.setChats(chats);
   },
 
-  // ==================== 发现页 ====================
-
   _renderDiscover: function (container) {
     var self = this;
+    var worldviews = MI.Storage.getWorldviews();
 
-    // 朋友圈入口
+    if (worldviews.length === 0) {
+      container.appendChild(MI.Components.createEmptyState('请先创建世界观\n才能使用朋友圈'));
+      return;
+    }
+
     var momentsRow = MI.Components.createMenuRow('🔵', '朋友圈', '', true, function () {
       MI.Router.navigateTo('moments');
     });
-    // 检查是否有朋友圈内容，有则显示红点
-    var moments = MI.Storage.getMoments();
-    if (moments.length > 0) {
+
+    var wvMoments = MI.Storage.getMomentsByWorldview(MI.Storage.getActiveWorldviewId());
+    if (wvMoments.length > 0) {
       var badge = document.createElement('span');
-      badge.className = 'unread-badge';
-      badge.textContent = '';
-      badge.style.cssText = 'display:inline-block;width:8px;height:8px;background:#FF3B30;border-radius:50%;margin-right:6px;';
+      badge.className = 'unread-dot';
       var right = momentsRow.querySelector('.menu-row-right');
-      if (right) {
-        right.insertBefore(badge, right.firstChild);
-      }
+      if (right) right.insertBefore(badge, right.firstChild);
     }
+
     container.appendChild(momentsRow);
     container.appendChild(MI.Components.createDivider());
 
-    // 装饰性菜单项
     var items = ['扫一扫', '摇一摇', '小程序'];
     for (var i = 0; i < items.length; i++) {
       var item = MI.Components.createMenuRow('', items[i], '', true, function (name) {
-        return function () {
-          self._showToast(name + ' 功能开发中...');
-        };
+        return function () { self._showToast(name + ' 功能开发中...'); };
       }(items[i]));
       container.appendChild(item);
       if (i < items.length - 1) {
@@ -355,7 +310,6 @@ MI.WeChat = {
     var toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = message;
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 24px;border-radius:20px;font-size:14px;z-index:9999;pointer-events:none;';
     document.getElementById('app').appendChild(toast);
     setTimeout(function () {
       toast.style.opacity = '0';

@@ -1,26 +1,47 @@
 /**
  * style.css — 小手机 全局样式
- * iPhone 视觉风格 + WeChat 配色
- * 约 600 行
+ * 低饱和流体玻璃 · ins 高级感简约风
  */
 
 /* ==================== CSS 变量 ==================== */
 :root {
-  /* WeChat 配色 */
-  --wechat-green: #07C160;
-  --wechat-dark-green: #06AD56;
-  --bubble-sent: #95EC69;
-  --bubble-received: #FFFFFF;
+  /* 低饱和冷色盘 */
+  --glass-mist: #e8e6ec;
+  --glass-fog: #f0eef3;
+  --glass-snow: rgba(255, 255, 255, 0.72);
+  --glass-frost: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-border-subtle: rgba(180, 175, 195, 0.35);
+  --glass-shadow-soft: 0 4px 24px rgba(90, 85, 110, 0.12);
+  --glass-shadow-deep: 0 8px 32px rgba(70, 65, 90, 0.18);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --glass-inset-deep: inset 0 2px 8px rgba(255, 255, 255, 0.35), inset 0 -2px 6px rgba(100, 95, 120, 0.08);
 
-  /* iOS 系统色 */
-  --ios-bg: #F2F2F7;
-  --ios-card-bg: #FFFFFF;
-  --ios-separator: #E5E5EA;
-  --ios-text-primary: #000000;
-  --ios-text-secondary: #8E8E93;
-  --ios-tab-bar-bg: #F7F7F7;
-  --ios-nav-bar-bg: #EDEDED;
-  --ios-red: #FF3B30;
+  /* 虹彩折射色 */
+  --iridescent-1: rgba(176, 198, 220, 0.55);
+  --iridescent-2: rgba(198, 185, 215, 0.45);
+  --iridescent-3: rgba(185, 210, 205, 0.4);
+  --iridescent-4: rgba(215, 200, 195, 0.35);
+
+  /* 文字 */
+  --text-primary: #3a3845;
+  --text-secondary: #8a8698;
+  --text-tertiary: #b0acb8;
+  --text-on-dark: rgba(255, 255, 255, 0.92);
+  --text-accent: #6b7f8f;
+  --text-link: #7a8a9e;
+
+  /* 功能色（低饱和） */
+  --accent-sage: #8aab9a;
+  --accent-sage-deep: #6d8f7e;
+  --accent-rose: #c49a9a;
+  --accent-lavender: #9a92b0;
+
+  /* 壁纸渐变锚点（保留 image_5 色相，降饱和） */
+  --wall-1: #7a8a9e;
+  --wall-2: #8e8498;
+  --wall-3: #9a929e;
+  --wall-4: #a8a4b0;
 
   /* 安全区域 */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -35,7 +56,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -44,20 +65,24 @@ html, body {
   overflow: hidden;
   height: 100%;
   width: 100%;
+  letter-spacing: 0.01em;
 }
 
-/* ==================== 应用容器 ==================== */
+/* ==================== 应用容器 · 厚重玻璃机身 ==================== */
 #app {
   width: 100%;
   height: 100vh;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(168deg, #1a1a22 0%, #121218 50%, #0e0e14 100%);
 }
 
-/* 桌面端：手机框效果 */
 @media (min-width: 431px) {
   body {
-    background: #1C1C1E;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(120, 130, 160, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(100, 95, 130, 0.12) 0%, transparent 50%),
+      linear-gradient(180deg, #0c0c10 0%, #16161c 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -67,11 +92,34 @@ html, body {
     max-width: 430px;
     height: 932px;
     max-height: 100vh;
-    border-radius: 40px;
+    border-radius: 48px;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.05) 100%);
     box-shadow:
-      0 0 0 3px #333,
-      0 0 0 6px #1a1a1a,
-      0 20px 60px rgba(0,0,0,0.5);
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+      0 0 0 2px rgba(50, 50, 58, 0.9),
+      0 0 0 4px rgba(25, 25, 30, 0.85),
+      0 25px 70px rgba(0, 0, 0, 0.55),
+      0 50px 100px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  #app::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 48px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+    pointer-events: none;
+    z-index: 9998;
   }
 }
 
@@ -87,115 +135,245 @@ html, body {
   overflow: hidden;
 }
 
-/* 页面过渡动画 */
-.screen-enter {
-  transform: translateX(100%);
-}
+.screen-enter { transform: translateX(100%); }
 .screen-enter.screen-active {
   transform: translateX(0);
   transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
 }
-.screen-exit {
-  transform: translateX(0);
-  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
-}
-.screen-exit.screen-active {
-  transform: translateX(-30%);
-}
-.screen-back {
-  transform: translateX(-30%);
-}
+.screen-exit { transform: translateX(0); transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1); }
+.screen-exit.screen-active { transform: translateX(-30%); }
+.screen-back { transform: translateX(-30%); }
 .screen-back.screen-active {
   transform: translateX(0);
   transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
 }
-.screen-exit-right {
-  transform: translateX(0);
-  transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1);
-}
-.screen-exit-right.screen-active {
-  transform: translateX(100%);
+.screen-exit-right { transform: translateX(0); transition: transform 0.3s cubic-bezier(0.36, 0.66, 0.04, 1); }
+.screen-exit-right.screen-active { transform: translateX(100%); }
+
+/* ==================== 主屏幕壁纸 ==================== */
+.home-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(200, 210, 225, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 25%, rgba(185, 175, 205, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 70% at 50% 90%, rgba(160, 155, 175, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 70% 60%, rgba(175, 195, 210, 0.2) 0%, transparent 45%),
+    linear-gradient(155deg, var(--wall-1) 0%, var(--wall-2) 38%, var(--wall-3) 68%, var(--wall-4) 100%);
 }
 
-/* ==================== 状态栏 ==================== */
+.home-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.08) 100%);
+  pointer-events: none;
+}
+
+.home-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* ==================== 状态栏 · 抛光金属玻璃 ==================== */
 .status-bar {
   height: 44px;
-  padding: 14px 20px 0;
+  padding: 14px 22px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
-  color: white;
+  color: var(--text-on-dark);
+  position: relative;
+  z-index: 2;
+  letter-spacing: 0.02em;
+}
+
+.status-bar-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
 }
 
 .status-left, .status-right {
-  min-width: 60px;
+  min-width: 64px;
+  display: flex;
+  align-items: center;
 }
 
 .status-right {
-  text-align: right;
-  font-size: 12px;
+  justify-content: flex-end;
+  gap: 5px;
 }
 
-/* ==================== 导航栏 ==================== */
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+.status-icon-signal {
+  width: 16px;
+  height: 11px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+}
+.status-icon-signal span {
+  display: block;
+  width: 3px;
+  background: currentColor;
+  border-radius: 1px;
+}
+.status-icon-signal span:nth-child(1) { height: 4px; opacity: 0.5; }
+.status-icon-signal span:nth-child(2) { height: 6px; opacity: 0.65; }
+.status-icon-signal span:nth-child(3) { height: 8px; opacity: 0.8; }
+.status-icon-signal span:nth-child(4) { height: 11px; }
+
+.status-icon-wifi {
+  width: 14px;
+  height: 11px;
+  position: relative;
+}
+.status-icon-wifi::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+}
+.status-icon-wifi::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  opacity: 0.85;
+}
+
+.status-icon-battery {
+  width: 24px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+  opacity: 0.9;
+}
+.status-icon-battery::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  right: 3px;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.85;
+}
+.status-icon-battery::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+  opacity: 0.7;
+}
+
+/* ==================== 应用内屏幕基底 ==================== */
+.app-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 0%, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
+    linear-gradient(180deg, var(--glass-fog) 0%, var(--glass-mist) 100%);
+}
+
+/* ==================== 导航栏 · 磨砂玻璃 ==================== */
 .nav-bar {
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ios-nav-bar-bg);
-  border-bottom: 0.5px solid var(--ios-separator);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
   position: relative;
   flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .nav-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
 }
 
 .nav-back-btn {
   position: absolute;
   left: 12px;
-  color: var(--ios-text-primary);
+  color: var(--text-accent);
   font-size: 16px;
   cursor: pointer;
   padding: 8px 12px;
   min-height: 44px;
   display: flex;
   align-items: center;
+  font-weight: 500;
 }
-.nav-back-btn:active {
-  opacity: 0.6;
-}
+.nav-back-btn:active { opacity: 0.55; }
 
 .nav-right-btn {
   position: absolute;
   right: 12px;
-  color: var(--ios-text-primary);
+  color: var(--text-accent);
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 300;
   cursor: pointer;
   padding: 8px 12px;
   min-height: 44px;
   display: flex;
   align-items: center;
 }
-.nav-right-btn:active {
-  opacity: 0.6;
-}
+.nav-right-btn:active { opacity: 0.55; }
 
-/* ==================== Tab 栏 ==================== */
+/* ==================== Tab 栏 · 玻璃底栏 ==================== */
 .tab-bar {
   height: calc(49px + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   display: flex;
-  background: var(--ios-tab-bar-bg);
-  border-top: 0.5px solid var(--ios-separator);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-top: 0.5px solid var(--glass-border-subtle);
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .tab-item {
@@ -205,94 +383,261 @@ html, body {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: var(--ios-text-secondary);
+  color: var(--text-tertiary);
   gap: 3px;
   cursor: pointer;
   min-height: 49px;
+  transition: color 0.2s ease;
 }
 .tab-item.active {
-  color: var(--wechat-green);
+  color: var(--accent-sage-deep);
 }
-.tab-item:active {
-  opacity: 0.6;
-}
+.tab-item:active { opacity: 0.55; }
 
 .tab-icon {
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
+  filter: saturate(0.7) brightness(1.05);
 }
 
 .tab-label {
   font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
-/* ==================== 主屏幕 ==================== */
+/* ==================== 主屏幕应用网格 ==================== */
 .app-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 22px 12px;
   padding: 30px 18px;
+  position: relative;
+  z-index: 1;
 }
 
 .app-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
 }
-.app-icon:active {
-  transform: scale(0.85);
-  transition: transform 0.15s;
-}
-
-.app-icon-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+.app-icon:active .app-icon-img {
+  transform: scale(0.88);
+  transition: transform 0.15s cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
 .app-icon-label {
   font-size: 11px;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  color: var(--text-on-dark);
+  text-shadow: 0 1px 4px rgba(40, 35, 55, 0.35);
   white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
-/* Dock */
+/* Dock 内隐藏标签 */
+.dock .app-icon-label {
+  display: none;
+}
+
+/* ==================== 流体玻璃图标基底 ==================== */
+.app-icon-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow:
+    0 2px 4px rgba(60, 55, 75, 0.15),
+    0 8px 20px rgba(70, 65, 90, 0.2),
+    var(--glass-inset);
+}
+
+.app-icon-img.app-glass-sm {
+  width: 54px;
+  height: 54px;
+  border-radius: 13px;
+}
+
+.app-glass-inner {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.app-glass-emoji {
+  font-size: 28px;
+  line-height: 1;
+  filter: saturate(0.75) drop-shadow(0 2px 4px rgba(60, 55, 80, 0.2));
+  position: relative;
+  z-index: 2;
+}
+
+.app-icon-img.app-glass-sm .app-glass-emoji {
+  font-size: 26px;
+}
+
+/* 玻璃层：顶部高光 */
+.app-icon-img::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.15) 35%,
+    transparent 55%
+  );
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* 玻璃层：虹彩折射 */
+.app-icon-img::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 200deg at 50% 50%,
+    var(--iridescent-1),
+    var(--iridescent-2),
+    var(--iridescent-3),
+    var(--iridescent-4),
+    var(--iridescent-1)
+  );
+  opacity: 0.35;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+/* 各应用低饱和色调 */
+.app-glass--default {
+  background: linear-gradient(145deg, rgba(160, 170, 190, 0.8) 0%, rgba(140, 150, 175, 0.75) 100%);
+}
+
+.app-glass--wechat {
+  background:
+    linear-gradient(145deg, rgba(140, 175, 155, 0.85) 0%, rgba(110, 145, 130, 0.75) 50%, rgba(95, 130, 115, 0.8) 100%);
+  box-shadow:
+    0 2px 4px rgba(60, 90, 75, 0.2),
+    0 10px 28px rgba(70, 100, 85, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -3px 8px rgba(60, 90, 75, 0.15);
+}
+.app-glass--wechat .app-glass-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 25%, rgba(200, 230, 215, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 75% 70%, rgba(180, 200, 220, 0.35) 0%, transparent 55%),
+    linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.25) 48%, transparent 52%);
+  z-index: 2;
+  pointer-events: none;
+}
+.app-glass--wechat .app-glass-depth {
+  position: absolute;
+  inset: 3px;
+  border-radius: 12px;
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 40%);
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.15);
+}
+
+.app-glass--photos {
+  background: linear-gradient(145deg, rgba(195, 170, 155, 0.8) 0%, rgba(175, 150, 140, 0.75) 100%);
+}
+.app-glass--calendar {
+  background: linear-gradient(145deg, rgba(195, 155, 155, 0.8) 0%, rgba(170, 135, 140, 0.75) 100%);
+}
+.app-glass--settings_ios {
+  background: linear-gradient(145deg, rgba(175, 175, 185, 0.8) 0%, rgba(150, 150, 165, 0.75) 100%);
+}
+.app-glass--music {
+  background: linear-gradient(145deg, rgba(195, 145, 150, 0.8) 0%, rgba(170, 125, 135, 0.75) 100%);
+}
+.app-glass--notes {
+  background: linear-gradient(145deg, rgba(200, 190, 160, 0.8) 0%, rgba(180, 170, 145, 0.75) 100%);
+}
+.app-glass--safari,
+.app-glass--safari_dock {
+  background: linear-gradient(145deg, rgba(145, 170, 195, 0.8) 0%, rgba(125, 150, 180, 0.75) 100%);
+}
+.app-glass--calc {
+  background: linear-gradient(145deg, rgba(160, 155, 190, 0.8) 0%, rgba(140, 135, 170, 0.75) 100%);
+}
+.app-glass--phone {
+  background: linear-gradient(145deg, rgba(150, 185, 160, 0.8) 0%, rgba(130, 165, 145, 0.75) 100%);
+}
+.app-glass--wechat_dock {
+  background: linear-gradient(145deg, rgba(140, 175, 155, 0.85) 0%, rgba(110, 145, 130, 0.75) 100%);
+}
+.app-glass--music_dock {
+  background: linear-gradient(145deg, rgba(195, 145, 150, 0.8) 0%, rgba(170, 125, 135, 0.75) 100%);
+}
+
+/* ==================== Dock · 厚重流体玻璃 ==================== */
 .dock {
   position: absolute;
   bottom: 16px;
   left: 12px;
   right: 12px;
   height: 78px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 0 6px;
+  padding: 0 8px;
+  z-index: 2;
+  border: 0.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 8px 32px rgba(50, 45, 70, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* ==================== 聊天列表 ==================== */
+.dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* ==================== 玻璃列表行 ==================== */
 .chat-item {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: white;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
   gap: 12px;
   position: relative;
+  transition: background 0.15s ease;
 }
 .chat-item:active {
-  background: #E6E6E6;
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .chat-item-info {
@@ -312,12 +657,13 @@ html, body {
 .chat-item-name {
   font-size: 16px;
   font-weight: 500;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .chat-item-time {
   font-size: 12px;
-  color: var(--ios-text-secondary);
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
@@ -329,7 +675,7 @@ html, body {
 
 .chat-item-lastmsg {
   font-size: 14px;
-  color: var(--ios-text-secondary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -338,7 +684,7 @@ html, body {
 }
 
 .unread-badge {
-  background: #FF3B30;
+  background: linear-gradient(135deg, #d4a0a0, #c49090);
   color: white;
   font-size: 11px;
   font-weight: 600;
@@ -351,34 +697,50 @@ html, body {
   padding: 0 5px;
   flex-shrink: 0;
   margin-left: 6px;
+  box-shadow: 0 2px 6px rgba(180, 130, 130, 0.3);
 }
 
-/* 分割线 */
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #d4a0a0, #c49090);
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 1px 4px rgba(180, 130, 130, 0.35);
+  flex-shrink: 0;
+}
+
 .divider {
   position: absolute;
   bottom: 0;
   left: 68px;
   right: 0;
   height: 0.5px;
-  background: var(--ios-separator);
+  background: var(--glass-border-subtle);
 }
 
-/* ==================== 头像 ==================== */
+/* ==================== 头像 · 磨砂方块 ==================== */
 .avatar {
   width: 48px;
   height: 48px;
-  border-radius: 6px;
-  background: #E8E8ED;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
   flex-shrink: 0;
+  border: 0.5px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-inset), 0 2px 8px rgba(90, 85, 110, 0.1);
+  filter: saturate(0.8);
 }
 .avatar-sm {
   width: 40px;
   height: 40px;
-  border-radius: 5px;
+  border-radius: 7px;
   font-size: 22px;
 }
 .avatar-lg {
@@ -388,6 +750,11 @@ html, body {
   font-size: 36px;
 }
 
+.avatar-glass-border {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px rgba(70, 65, 90, 0.15), var(--glass-inset);
+}
+
 /* ==================== 聊天详情 ==================== */
 .msg-list {
   flex: 1;
@@ -395,8 +762,10 @@ html, body {
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #EDEDED;
+  gap: 10px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+    linear-gradient(180deg, #e4e2e8 0%, #dddbe2 100%);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -412,46 +781,54 @@ html, body {
 }
 
 .msg-sent {
-  background: #95EC69;
-  color: #000;
+  background: rgba(180, 210, 195, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-primary);
   align-self: flex-end;
-  border-radius: 16px 16px 4px 16px;
+  border-radius: 18px 18px 4px 18px;
+  border: 0.5px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--glass-inset), 0 2px 8px rgba(100, 130, 115, 0.12);
 }
 
 .msg-received {
-  background: #FFFFFF;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text-primary);
   align-self: flex-start;
-  border-radius: 16px 16px 16px 4px;
+  border-radius: 18px 18px 18px 4px;
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--glass-inset), 0 2px 8px rgba(90, 85, 110, 0.08);
 }
 
 .msg-error {
-  background: #FFF3CD;
-  color: #856404;
+  background: rgba(220, 200, 170, 0.6);
+  color: #7a6a50;
   align-self: center;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   text-align: center;
   max-width: 85%;
+  border: 0.5px solid rgba(255, 255, 255, 0.4);
 }
 
-/* 打字动画 */
 .msg-typing {
   padding: 14px 18px;
-  border-radius: 16px 16px 16px 4px;
+  border-radius: 18px 18px 18px 4px;
 }
 
 .typing-dots {
   display: flex;
-  gap: 4px;
+  gap: 5px;
 }
 
 .typing-dots span {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #999;
+  background: var(--text-tertiary);
   animation: typing-dot 1.4s infinite both;
 }
 
@@ -468,28 +845,35 @@ html, body {
   display: flex;
   padding: 8px 12px;
   padding-bottom: calc(8px + var(--safe-bottom));
-  background: #F7F7F7;
-  border-top: 0.5px solid var(--ios-separator);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border-top: 0.5px solid var(--glass-border-subtle);
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .chat-input {
   flex: 1;
   padding: 10px 14px;
-  border: 1px solid #E5E5EA;
+  border: 0.5px solid var(--glass-border-subtle);
   border-radius: 20px;
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   font-size: 15px;
   outline: none;
+  color: var(--text-primary);
+  box-shadow: var(--glass-inset);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .chat-input:focus {
-  border-color: var(--wechat-green);
+  border-color: rgba(138, 171, 154, 0.6);
+  box-shadow: var(--glass-inset), 0 0 0 3px rgba(138, 171, 154, 0.12);
 }
 
 .chat-send-btn {
-  background: var(--wechat-green);
+  background: linear-gradient(135deg, var(--accent-sage) 0%, var(--accent-sage-deep) 100%);
   color: white;
   border: none;
   padding: 10px 18px;
@@ -499,45 +883,54 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   min-height: 40px;
+  box-shadow: 0 2px 10px rgba(109, 143, 126, 0.3), var(--glass-inset);
+  letter-spacing: 0.02em;
 }
 .chat-send-btn:active {
-  background: var(--wechat-dark-green);
+  opacity: 0.85;
+  transform: scale(0.97);
 }
 .chat-send-btn:disabled {
-  background: #B0B0B0;
-  color: #E0E0E0;
+  background: linear-gradient(135deg, #c5c3ca, #b5b3ba);
+  color: rgba(255, 255, 255, 0.7);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ==================== 通讯录 ==================== */
 .contact-section-header {
-  background: #F2F2F7;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 4px 16px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ios-text-secondary);
-  border-bottom: 0.5px solid var(--ios-separator);
+  color: var(--text-secondary);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
+  letter-spacing: 0.04em;
 }
 
 .contact-row {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  background: white;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   cursor: pointer;
   gap: 12px;
+  transition: background 0.15s;
 }
 .contact-row:active {
-  background: #E6E6E6;
+  background: rgba(255, 255, 255, 0.75);
 }
 
-.contact-info {
-  flex: 1;
-}
+.contact-info { flex: 1; }
 
 .contact-name {
   font-size: 16px;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 /* ==================== 菜单行 ==================== */
@@ -546,12 +939,15 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: white;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   cursor: pointer;
   position: relative;
+  transition: background 0.15s;
 }
 .menu-row:active {
-  background: #E6E6E6;
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .menu-row-left {
@@ -564,11 +960,13 @@ html, body {
   font-size: 20px;
   width: 28px;
   text-align: center;
+  filter: saturate(0.7);
 }
 
 .menu-row-label {
   font-size: 16px;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .menu-row-right {
@@ -579,12 +977,12 @@ html, body {
 
 .menu-row-sublabel {
   font-size: 14px;
-  color: var(--ios-text-secondary);
+  color: var(--text-secondary);
 }
 
 .menu-row-arrow {
   font-size: 20px;
-  color: #C7C7CC;
+  color: var(--text-tertiary);
   font-weight: 300;
 }
 
@@ -594,7 +992,11 @@ html, body {
   align-items: center;
   gap: 16px;
   padding: 24px 16px;
-  background: white;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .profile-info {
@@ -606,24 +1008,62 @@ html, body {
 .profile-name {
   font-size: 20px;
   font-weight: 600;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
 }
 
 .profile-wechat-id,
 .profile-region {
   font-size: 13px;
-  color: var(--ios-text-secondary);
+  color: var(--text-secondary);
 }
 
 /* ==================== 朋友圈 ==================== */
 .moments-cover {
-  /* 内联设置 */
+  height: 260px;
+  position: relative;
+  flex-shrink: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 30%, rgba(200, 210, 225, 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 80% 60%, rgba(185, 175, 205, 0.35) 0%, transparent 50%),
+    linear-gradient(155deg, var(--wall-1) 0%, var(--wall-2) 45%, var(--wall-3) 100%);
+}
+
+.moments-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.1) 100%);
+  pointer-events: none;
+}
+
+.moments-profile {
+  position: absolute;
+  bottom: -30px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moments-profile-name {
+  color: var(--text-on-dark);
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(40, 35, 55, 0.4);
+  letter-spacing: 0.02em;
+}
+
+.moments-spacer {
+  height: 40px;
 }
 
 .moments-post {
   padding: 14px 16px;
-  background: white;
-  border-bottom: 0.5px solid var(--ios-separator);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
 }
 
 .post-header {
@@ -636,71 +1076,64 @@ html, body {
 .post-author-name {
   font-size: 16px;
   font-weight: 600;
-  color: #576B95;
+  color: var(--text-link);
+  letter-spacing: 0.01em;
 }
 
 .post-text {
   font-size: 15px;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
   margin-bottom: 8px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
-/* 朋友圈图片网格 */
 .post-images {
   display: grid;
   gap: 4px;
   margin-bottom: 8px;
 }
-
-.post-images.grid {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.post-images.two {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.post-images.single {
-  grid-template-columns: 1fr;
-  max-width: 200px;
-}
+.post-images.grid { grid-template-columns: repeat(3, 1fr); }
+.post-images.two { grid-template-columns: repeat(2, 1fr); }
+.post-images.single { grid-template-columns: 1fr; max-width: 200px; }
 
 .post-img-placeholder {
   width: 100%;
   aspect-ratio: 1;
-  background: #E8E8ED;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
   overflow: hidden;
+  border: 0.5px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-inset);
+  filter: saturate(0.75);
 }
 
 .post-timestamp {
   font-size: 12px;
-  color: var(--ios-text-secondary);
+  color: var(--text-tertiary);
   margin-bottom: 6px;
 }
 
-/* 点赞和评论 */
 .post-interactions {
-  background: #F7F7F7;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 6px;
   overflow: hidden;
+  border: 0.5px solid var(--glass-border-subtle);
 }
 
 .likes-bar {
   padding: 6px 10px;
   font-size: 13px;
-  color: #576B95;
-  border-bottom: 0.5px solid var(--ios-separator);
+  color: var(--text-link);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
 }
-.likes-bar:last-child {
-  border-bottom: none;
-}
+.likes-bar:last-child { border-bottom: none; }
 
 .comments-bar {
   padding: 4px 10px;
@@ -709,15 +1142,19 @@ html, body {
 
 .comment-line {
   padding: 3px 0;
-  color: var(--ios-text-primary);
+  color: var(--text-primary);
 }
 
 .comment-name {
-  color: #576B95;
+  color: var(--text-link);
   font-weight: 500;
 }
 
 /* ==================== 设置页 ==================== */
+.settings-scroll {
+  padding: 16px;
+}
+
 .setting-group {
   margin-bottom: 12px;
 }
@@ -726,31 +1163,67 @@ html, body {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ios-text-secondary);
+  color: var(--text-secondary);
   margin-bottom: 4px;
   padding-left: 2px;
+  letter-spacing: 0.02em;
 }
 
 .setting-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
+  border: 0.5px solid var(--glass-border-subtle);
+  border-radius: 10px;
   font-size: 14px;
   outline: none;
-  background: white;
+  background: rgba(255, 255, 255, 0.65);
   font-family: inherit;
   -webkit-appearance: none;
+  color: var(--text-primary);
+  box-shadow: var(--glass-inset);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .setting-input:focus {
-  border-color: var(--wechat-green);
-  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+  border-color: rgba(138, 171, 154, 0.6);
+  box-shadow: var(--glass-inset), 0 0 0 3px rgba(138, 171, 154, 0.1);
 }
 
 textarea.setting-input {
   resize: vertical;
   min-height: 60px;
+}
+
+/* 玻璃按钮 */
+.btn-glass {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: var(--glass-inset);
+}
+.btn-glass:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.btn-glass-primary {
+  background: linear-gradient(135deg, var(--accent-sage) 0%, var(--accent-sage-deep) 100%);
+  color: white;
+  margin-top: 16px;
+  box-shadow: 0 4px 14px rgba(109, 143, 126, 0.25), var(--glass-inset);
+}
+
+.btn-glass-danger {
+  background: linear-gradient(135deg, #d4a8a8 0%, #c49898 100%);
+  color: white;
+  margin-top: 12px;
+  box-shadow: 0 4px 14px rgba(196, 152, 152, 0.25), var(--glass-inset);
 }
 
 /* ==================== 滚动容器 ==================== */
@@ -760,17 +1233,39 @@ textarea.setting-input {
   -webkit-overflow-scrolling: touch;
 }
 
+.wechat-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ==================== 通用组件 ==================== */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: var(--ios-text-secondary);
+  color: var(--text-secondary);
   font-size: 15px;
   white-space: pre-line;
 }
 
-/* ==================== Toast ==================== */
+/* ==================== Toast · 玻璃浮层 ==================== */
 .toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(55, 52, 65, 0.75);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 24px;
+  border-radius: 22px;
+  font-size: 14px;
+  z-index: 9999;
+  pointer-events: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(40, 35, 55, 0.3);
+  letter-spacing: 0.02em;
   animation: toastIn 0.3s ease-out;
 }
 
@@ -783,4 +1278,167 @@ textarea.setting-input {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* ==================== 导航主屏按钮 ==================== */
+.nav-home-btn {
+  position: absolute;
+  left: 12px;
+  color: var(--text-accent);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px 10px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+.nav-home-btn:active { opacity: 0.55; }
+
+/* ==================== 表单扩展 ==================== */
+.form-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 16px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 0.5px solid var(--glass-border-subtle);
+}
+
+.form-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 2px 12px;
+  line-height: 1.5;
+}
+
+.form-hint-warn {
+  color: #9a7a6a;
+  background: rgba(220, 200, 170, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.provider-card {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.5px solid var(--glass-border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.provider-card:active { background: rgba(255, 255, 255, 0.8); }
+
+.provider-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.provider-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.3;
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.emoji-picker-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 0.5px solid var(--glass-border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0;
+}
+.emoji-picker-btn.selected {
+  border-color: var(--accent-sage);
+  background: rgba(138, 171, 154, 0.15);
+  box-shadow: 0 0 0 2px rgba(138, 171, 154, 0.2);
+}
+
+.btn-glass-secondary {
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--text-primary);
+  margin-top: 12px;
+  border: 0.5px solid var(--glass-border-subtle);
+}
+
+.profile-card-clickable { cursor: pointer; }
+.profile-card-clickable:active { opacity: 0.85; }
+
+.contact-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.contact-row-actions {
+  flex-shrink: 0;
+}
+
+.contact-action-btn {
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.5px solid var(--glass-border-subtle);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-accent);
+  cursor: pointer;
+}
+.contact-action-btn:active { opacity: 0.7; }
+
+.worldview-switcher {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.45);
+  border-bottom: 0.5px solid var(--glass-border-subtle);
+  flex-shrink: 0;
+}
+
+.worldview-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0.5px solid var(--glass-border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  color: var(--text-primary);
+  -webkit-appearance: none;
+}
+
+.post-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.post-action-btn {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  color: var(--text-link);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.post-action-btn:active { opacity: 0.6; }
+
+select.setting-input {
+  -webkit-appearance: none;
+  appearance: none;
 }

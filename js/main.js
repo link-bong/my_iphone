@@ -89,7 +89,10 @@ function boot() {
   // 1. 迁移旧数据
   migrateOldData();
 
-  // 2. 初始化种子数据
+  // 2. schema v2 迁移
+  MI.Data.migrateToV2();
+
+  // 3. 初始化数据（仅确保 AI 助手）
   MI.Data.initSeedData();
 
   // 3. 启动路由（自动渲染当前页面）

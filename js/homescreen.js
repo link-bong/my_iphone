@@ -29,17 +29,11 @@ MI.HomeScreen = {
    * 渲染主屏幕到指定容器
    */
   render: function (container) {
-    // 壁纸背景
-    container.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)';
-    container.style.position = 'relative';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.height = '100%';
+    container.classList.add('home-screen');
 
     // 状态栏
     var statusBar = MI.Components.createStatusBar();
-    statusBar.style.background = 'rgba(0,0,0,0.3)';
-    statusBar.style.color = 'white';
+    statusBar.classList.add('status-bar-glass');
     container.appendChild(statusBar);
 
     // 应用网格
@@ -52,12 +46,13 @@ MI.HomeScreen = {
       var icon = MI.Components.createAppIcon(
         app.emoji,
         app.label,
-        app.color,
+        app.id,
         (function (appId) {
           return function () {
             MI.HomeScreen.onAppClick(appId);
           };
-        })(app.id)
+        })(app.id),
+        false
       );
       grid.appendChild(icon);
     }
@@ -78,17 +73,14 @@ MI.HomeScreen = {
       var dIcon = MI.Components.createAppIcon(
         dApp.emoji,
         dApp.label,
-        dApp.color,
+        dApp.id,
         (function (appId) {
           return function () {
             MI.HomeScreen.onAppClick(appId);
           };
-        })(dApp.id)
+        })(dApp.id),
+        true
       );
-      // Dock 图标略小
-      dIcon.querySelector('.app-icon-img').style.width = '54px';
-      dIcon.querySelector('.app-icon-img').style.height = '54px';
-      dIcon.querySelector('.app-icon-img').style.fontSize = '26px';
       dock.appendChild(dIcon);
     }
 
@@ -126,7 +118,6 @@ MI.HomeScreen = {
     var toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = message;
-    toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 24px;border-radius:20px;font-size:14px;z-index:9999;pointer-events:none;';
     document.getElementById('app').appendChild(toast);
     setTimeout(function () {
       toast.style.opacity = '0';

@@ -1,44 +1,37 @@
 /**
  * api.js — OpenAI 兼容 API 封装
- * 修复了原代码的所有 bug：HTTP 状态检查、loading 状态、错误处理
  */
 window.MI = window.MI || {};
 
 MI.API = {
   /**
-   * 发送消息到 AI API
-   * @param {Array} messages - [{role, content}, ...] 聊天消息数组
+   * @param {Array} messages
+   * @param {Object} config - { apiUrl, apiKey, apiModel, systemPrompt }
    * @param {Object} callbacks
-   * @param {Function} callbacks.onSuccess - (replyText: string) => void
-   * @param {Function} callbacks.onError - (errorMessage: string) => void
-   * @param {Function} callbacks.onStart - () => void — 请求开始时调用
-   * @param {Function} callbacks.onEnd - () => void — 请求结束时调用（无论成功失败）
    */
-  sendChat: function (messages, callbacks) {
-    var config = MI.Storage.getConfig();
+  sendChat: function (messages, config, callbacks) {
+    callbacks = callbacks || {};
+    config = config || MI.Storage.getConfig();
 
-    // Bug 修复 1：先检查 API Key 是否存在，再处理 UI
     if (!config.apiKey || config.apiKey.trim() === '') {
       if (callbacks.onError) {
-        callbacks.onError('请先在「我 → API 设置」中填写你的 API Key 才能聊天哦！');
+        callbacks.onError('请先填写 API Key 才能聊天哦！');
       }
       return;
     }
 
     if (!config.apiUrl || config.apiUrl.trim() === '') {
       if (callbacks.onError) {
-        callbacks.onError('请先在「我 → API 设置」中填写 API 转发链接。');
+        callbacks.onError('请先填写 API 转发链接。');
       }
       return;
     }
 
     if (callbacks.onStart) callbacks.onStart();
 
-    // 构建请求体：system prompt + 聊天历史
     var requestMessages = [
-      { role: 'system', content: config.systemPrompt }
+      { role: 'system', content: config.systemPrompt || '请保持角色设定与我聊天。' }
     ];
-    // 仅发送 role 和 content（去掉 timestamp 等额外字段）
     for (var i = 0; i < messages.length; i++) {
       requestMessages.push({
         role: messages[i].role,
@@ -49,10 +42,8 @@ MI.API = {
     var body = {
       model: config.apiModel,
       messages: requestMessages,
-      temperature: 0.7
+      temperature: 0.8
     };
-
-    var self = this;
 
     fetch(config.apiUrl, {
       method: 'POST',
@@ -63,7 +54,6 @@ MI.API = {
       body: JSON.stringify(body)
     })
     .then(function (response) {
-      // Bug 修复 2：检查 HTTP 状态码
       if (!response.ok) {
         return response.json().then(function (errData) {
           var errMsg = (errData.error && errData.error.message)
@@ -72,7 +62,7 @@ MI.API = {
           throw new Error(errMsg);
         }).catch(function (parseErr) {
           if (parseErr.message && parseErr.message.indexOf('HTTP') !== 0) {
-            throw parseErr; // 已经是格式化好的错误
+            throw parseErr;
           }
           throw new Error('HTTP ' + response.status + ' ' + response.statusText);
         });
@@ -80,7 +70,6 @@ MI.API = {
       return response.json();
     })
     .then(function (data) {
-      // 安全提取 AI 回复
       if (!data.choices || !data.choices.length || !data.choices[0].message) {
         throw new Error('API 返回了异常的数据格式，请检查模型名称和 API URL 是否正确。');
       }
@@ -89,7 +78,10 @@ MI.API = {
     })
     .catch(function (error) {
       console.error('MI.API.sendChat error:', error);
-      var msg = error.message || '连接失败，请检查你的 API 链接、Key 是否正确，或者网络是否通畅。';
+      var msg = error.message || '连接失败，请检查 API 链接、Key 或网络。';
+      if (msg.indexOf('Failed to fetch') >= 0 || msg.indexOf('NetworkError') >= 0) {
+        msg = '网络请求失败，可能是 CORS 限制。请使用兼容中转或本地代理。';
+      }
       if (callbacks.onError) callbacks.onError(msg);
     })
     .finally(function () {
